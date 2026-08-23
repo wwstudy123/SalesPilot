@@ -50,6 +50,11 @@ class TraceStore:
         self._conn.row_factory = sqlite3.Row
         with self._lock:
             self._conn.executescript(_SCHEMA)
+            try:
+                # M3 增量列：旧 dev 库兼容（SQLite 不支持 ADD COLUMN IF NOT EXISTS）
+                self._conn.execute("ALTER TABLE agent_run ADD COLUMN decision_path TEXT")
+            except sqlite3.OperationalError:
+                pass
             self._conn.commit()
 
     # ---------- run ----------
@@ -71,15 +76,17 @@ class TraceStore:
         intent: str | None = None,
         routing_reason: str | None = None,
         confidence: float | None = None,
+        decision_path: str | None = None,
     ) -> None:
         with self._lock:
             self._conn.execute(
                 "UPDATE agent_run SET status = ?, finished_at = ?,"
                 " intent = COALESCE(?, intent),"
                 " routing_reason = COALESCE(?, routing_reason),"
-                " confidence = COALESCE(?, confidence)"
+                " confidence = COALESCE(?, confidence),"
+                " decision_path = COALESCE(?, decision_path)"
                 " WHERE run_id = ?",
-                (status, _now(), intent, routing_reason, confidence, run_id),
+                (status, _now(), intent, routing_reason, confidence, decision_path, run_id),
             )
             self._conn.commit()
 

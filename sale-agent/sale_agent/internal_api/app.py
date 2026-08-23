@@ -10,6 +10,11 @@ from sale_agent.ai.gateway import LLMGateway
 from sale_agent.ai.graph import ChatGraph
 from sale_agent.ai.router import router as ai_router
 from sale_agent.ai.trace import TraceStore
+from sale_agent.intent.embedding import EmbeddingClassifier
+from sale_agent.intent.fusion import IntentRouter
+from sale_agent.intent.llm import LLMClassifier
+from sale_agent.intent.rule import RuleClassifier
+from sale_agent.intent.schema import IntentCatalogStore, seed_default_catalog
 from sale_agent.internal_api.persistence import RunRegistryStore, RunTaskStore
 from sale_agent.internal_api.project_routes import router as project_router
 from sale_agent.internal_api.project_service import ProjectService
@@ -62,10 +67,20 @@ def create_app() -> FastAPI:
     gateway = LLMGateway()
     trace_store = TraceStore()
     context_store = build_context_store()
+    intent_catalog = IntentCatalogStore()
+    seed_default_catalog(intent_catalog)
+    intent_router = IntentRouter(
+        intent_catalog,
+        RuleClassifier(),
+        EmbeddingClassifier(intent_catalog),
+        LLMClassifier(gateway, intent_catalog),
+    )
     app.state.llm_gateway = gateway
     app.state.trace_store = trace_store
     app.state.context_store = context_store
-    app.state.chat_graph = ChatGraph(gateway, context_store, trace_store)
+    app.state.intent_catalog = intent_catalog
+    app.state.intent_router = intent_router
+    app.state.chat_graph = ChatGraph(gateway, context_store, trace_store, intent_router)
     app.include_router(router)
     app.include_router(project_router)
     app.include_router(ai_router)

@@ -1,7 +1,7 @@
 # DocAssistant-Skeleton（SalesPilot 零售销售智能体系统 · 工程骨架）
 
 > 依据冻结文档：《SalesPilot-需求文档 v1.2》《SalesPilot-技术架构设计 v1.2》《SalesPilot-MVP方案与任务拆解 v1.2》
-> 当前阶段：**M2 AI 运行时地基** —— /api/ai/chat SSE 流式 + LLM Gateway + Trace 落库 + Redis 会话上下文。
+> 当前阶段：**M3 意图分类** —— 13 意图 Schema（SQLite 动态可增补）+ Rule/Embedding/LLM 三路融合路由 + decision_path/confidence 落库。
 
 ## 架构总览
 
@@ -15,9 +15,9 @@ business-mock ──HTTP──▶ mcp-server (:9010)（M4 起：统一工具层�
 
 ## 目录结构
 
-| 目录 | 职责 | 现状（M2） |
+| 目录 | 职责 | 现状（M3） |
 |---|---|---|
-| `sale-agent/` | Python 3.11 + FastAPI + LangGraph：AI 核心引擎（包名 `sale_agent`） | `ai/` 包：Gateway（chat/embedding/重试/成本）+ Trace(SQLite) + Redis 上下文 + LangGraph 主图 + /api/ai SSE；旧 run 管线保留 |
+| `sale-agent/` | Python 3.11 + FastAPI + LangGraph：AI 核心引擎（包名 `sale_agent`） | `ai/` 包：Gateway + Trace + Redis 上下文 + LangGraph 主图 + /api/ai SSE；`intent/` 包：13 意图 Schema + Rule/Embedding/LLM 三路融合路由 |
 | `business-mock/` | Java 21 + Spring Boot 3.3：Mock CRM，业务事实唯一写入口（包名 `com.nova.sale`） | 四域 CRUD + JWT + 归属校验 + Flyway V1 + 种子数据（§3 规格含金标预埋） |
 | `mcp-server/` | Python 统一工具层：权限闸门/熔断/幂等/缓存/审计 | :9010 `/health` 骨架，M4 起落 10 工具 |
 | `frontend-web/` | React 双入口：`admin.html`（sale_admin）/ `sidebar.html`（sale_sidebar） | 登录 + 我的客户列表 + 客户详情（时间线/消费），M4/M7 起按端分化 |
@@ -69,6 +69,15 @@ AI 侧环境变量（可选）：`SALE_LLM_API_KEY` / `SALE_LLM_BASE_URL` / `SAL
 - [x] LangGraph 主图：load_context → route（M3 预留）→ respond → save_context，逐节点埋点
 - [x] pytest 23 passed + ruff 全绿
 
-## 下一步（M3 意图分类）
+## M3 验收清单
 
-意图 Schema 表 + 13 意图定义与样例入库；Rule + Embedding(内存余弦) + LLM 三路分类器与融合；路由接入主图，routing_reason/confidence 落库。
+- [x] 意图 Schema：13 意图定义 + 每意图 5 条种子样例入 SQLite（output/ai/intents.db），`GET /api/ai/intents` 返回带 example_count；`POST /intents/{name}/examples` 增补后分类器即时 reload（零发版）
+- [x] Rule 分类器：菜单直达（MENU 免分类）+ 关键词硬规则锁定（RULE_LOCKED，0.95）+ 软规则 prior
+- [x] Embedding 简化版：字符 bigram 内存余弦 + 锚点校准（SALE_INTENT_EMB_ANCHOR，默认 0.50）；LLM 分类器 Schema 动态渲染 prompt，echo 模式返回 None 走 EMB_FALLBACK 降级
+- [x] 三路融合：0.6×llm + 0.3×emb + 0.1×rule（一致 +0.05）→ FUSED/CLARIFY/EMB_FALLBACK/UNKNOWN，阈值 0.60~0.72 逐意图判定
+- [x] 路由接入主图：done 事件与 Trace 均带 intent/confidence/decision_path/routing_reason（Monitor 可验收）
+- [x] 自测集（tests/intent_eval_set.py，39 条 paraphrase）L1 = 36/39 = **92.3%** ≥ 85%；pytest 39 passed + ruff 全绿
+
+## 下一步（M4 画像 Agent）
+
+mcp-server 骨架 + 4 个只读工具（search_customers/get_customer_profile/list_follow_ups/list_purchases）+ 权限中间件（只读 bypass、write 强制 proposal 确认）；Profile 子图（LLM 结构化抽取 + 字段级 diff + 更新提案）；HITL 通用机制（proposal 表 + approval_token + 幂等 + 30min 过期）；前端画像卡与确认面板。

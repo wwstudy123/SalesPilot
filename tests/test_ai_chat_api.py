@@ -9,6 +9,7 @@ from sale_agent.internal_api.app import create_app
 def _build_client(monkeypatch, tmp_path) -> TestClient:
     monkeypatch.setenv("SALE_INTERNAL_API_REGISTRY", str(tmp_path / "runs.json"))
     monkeypatch.setenv("SALE_TRACE_DB", str(tmp_path / "trace.db"))
+    monkeypatch.setenv("SALE_INTENT_DB", str(tmp_path / "intents.db"))
     # 强制内存降级，避免依赖本机 Redis
     monkeypatch.setenv("SALE_REDIS_URL", "redis://127.0.0.1:16399/0")
     monkeypatch.delenv("SALE_LLM_API_KEY", raising=False)
@@ -68,7 +69,9 @@ def test_run_trace_queryable(monkeypatch, tmp_path):
     assert data["run"]["run_id"] == run_id
     assert data["run"]["session_id"] == "s3"
     assert data["run"]["status"] == "completed"
-    assert data["run"]["intent"] == "echo"
+    # M3 起 route 节点真实分类："trace me" 无关键词、无相似样例 → UNKNOWN 入评测池
+    assert data["run"]["intent"] == "unknown"
+    assert data["run"]["decision_path"] == "UNKNOWN"
     span_names = [s["name"] for s in data["spans"]]
     assert span_names == ["load_context", "route", "respond", "save_context"]
     assert all(s["status"] == "ok" for s in data["spans"])

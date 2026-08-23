@@ -1,7 +1,7 @@
-"""LangGraph 主图（M2 最小版）：load_context → route → respond → save_context。
+"""LangGraph 主图：load_context → route → respond → save_context。
 
-route 节点为 M3 意图分类预留占位（当前直通 echo intent）；
-每个节点进出均打 agent_span，支撑 Monitor 观察。
+route 节点接入 M3 三路意图分类（Rule/Embedding/LLM 融合），产出
+RoutingDecision；每个节点进出均打 agent_span，支撑 Monitor 观察。
 """
 
 from __future__ import annotations
@@ -13,6 +13,7 @@ from langgraph.graph import END, StateGraph
 from sale_agent.ai.context_store import SessionContextStore
 from sale_agent.ai.gateway import LLMGateway
 from sale_agent.ai.trace import TraceStore
+from sale_agent.intent.fusion import IntentRouter
 
 SYSTEM_PROMPT = "你是 SalesPilot 零售销售 Copilot，面向一线销售员工。基于对话历史简明作答，涉及客户信息时提醒员工核对。"
 
@@ -22,9 +23,12 @@ class ChatState(TypedDict, total=False):
     user_id: str
     run_id: str
     message: str
+    menu_intent: str
     history: list[dict[str, str]]
     intent: str
     routing_reason: str
+    confidence: float
+    decision_path: str
     reply: str
     model: str
     echo: bool
@@ -32,12 +36,19 @@ class ChatState(TypedDict, total=False):
 
 
 class ChatGraph:
-    """主图封装：状态机 + 依赖（gateway/context/trace）。"""
+    """主图封装：状态机 + 依赖（gateway/context/trace/intent router）。"""
 
-    def __init__(self, gateway: LLMGateway, context_store: SessionContextStore, trace: TraceStore) -> None:
+    def __init__(
+        self,
+        gateway: LLMGateway,
+        context_store: SessionContextStore,
+        trace: TraceStore,
+        intent_router: IntentRouter | None = None,
+    ) -> None:
         self.gateway = gateway
         self.context_store = context_store
         self.trace = trace
+        self.intent_router = intent_router
         self._graph = self._build()
 
     def _build(self):
@@ -66,11 +77,25 @@ class ChatGraph:
             return {"history": [], "error": f"load_context failed: {exc}"}
 
     def _route(self, state: ChatState) -> dict:
-        # M3 意图分类接入点：Rule + Embedding + LLM 三路融合；M2 直通
+        # M3 三路意图分类：Rule 锁定短路，否则 Embedding ∥ LLM 融合
         span = self.trace.start_span(state["run_id"], "route")
-        intent, reason = "echo", "M2 placeholder: route passthrough"
-        self.trace.finish_span(span, "ok", {"intent": intent})
-        return {"intent": intent, "routing_reason": reason}
+        if self.intent_router is None:
+            decision = None
+            result = {"intent": "echo", "routing_reason": "router unavailable", "confidence": 0.0, "decision_path": "UNKNOWN"}
+        else:
+            decision = self.intent_router.route(state["message"], state.get("menu_intent"))
+            result = {
+                "intent": decision.primary,
+                "routing_reason": decision.reason,
+                "confidence": decision.confidence,
+                "decision_path": decision.decision_path,
+            }
+        self.trace.finish_span(
+            span,
+            "ok",
+            {"intent": result["intent"], "path": result["decision_path"], "confidence": result["confidence"]},
+        )
+        return result
 
     def _respond(self, state: ChatState) -> dict:
         span = self.trace.start_span(state["run_id"], "respond")
