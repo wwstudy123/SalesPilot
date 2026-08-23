@@ -12,6 +12,16 @@ const navItems = [
     isActive: (pathname: string) => pathname.startsWith('/customers'),
   },
   {
+    to: '/chat',
+    label: 'AI 话术助手',
+    isActive: (pathname: string) => pathname.startsWith('/chat'),
+  },
+  {
+    to: '/kb',
+    label: '知识库',
+    isActive: (pathname: string) => pathname.startsWith('/kb'),
+  },
+  {
     to: '/login',
     label: '登录',
     isActive: (pathname: string) => pathname.startsWith('/login'),

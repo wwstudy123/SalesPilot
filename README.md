@@ -1,4 +1,4 @@
-# DocAssistant-Skeleton（SalesPilot 零售销售智能体系统 · 工程骨架）
+# SalesPilot 零售销售智能体系统
 
 > 依据冻结文档：《SalesPilot-需求文档 v1.2》《SalesPilot-技术架构设计 v1.2》《SalesPilot-MVP方案与任务拆解 v1.2》
 > 当前阶段：**M4 画像 Agent** —— mcp-server 五工具网关（权限四闸门）+ Profile 子图（抽取/diff/提案）+ HITL 确认流（approval_token 一次性凭证）+ 事件触发链路。

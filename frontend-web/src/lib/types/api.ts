@@ -170,3 +170,29 @@ export type RunInstructionRequest = {
   kind: string
   text?: string
 }
+
+// ---------- M5：话术建议卡 ----------
+
+export type SuggestionCitation = {
+  label: string
+  chunk_id: number
+  title: string
+  score: number
+}
+
+export type Suggestion = {
+  id: number
+  customer_id: number
+  employee_id: number
+  session_id: string
+  run_id: string
+  kind: string
+  skill: string
+  content: string
+  citations: SuggestionCitation[]
+  warnings: string[]
+  status: 'pending' | 'adopted' | 'modified' | 'rejected'
+  regenerate_count: number
+  created_at: string
+  resolved_at?: string | null
+}

@@ -24,6 +24,8 @@ class ChatState(TypedDict, total=False):
     run_id: str
     message: str
     menu_intent: str
+    customer_id: int
+    jwt: str
     history: list[dict[str, str]]
     intent: str
     routing_reason: str
@@ -33,6 +35,7 @@ class ChatState(TypedDict, total=False):
     model: str
     echo: bool
     error: str
+    coach_result: dict
 
 
 class ChatGraph:
@@ -44,11 +47,13 @@ class ChatGraph:
         context_store: SessionContextStore,
         trace: TraceStore,
         intent_router: IntentRouter | None = None,
+        coach=None,
     ) -> None:
         self.gateway = gateway
         self.context_store = context_store
         self.trace = trace
         self.intent_router = intent_router
+        self.coach = coach  # M5：Coach 子图（talk_script/objection_help 分派）
         self._graph = self._build()
 
     def _build(self):
@@ -98,6 +103,9 @@ class ChatGraph:
         return result
 
     def _respond(self, state: ChatState) -> dict:
+        # M5：coaching 类意图分派 Coach 子图（事实区 + 话术区 + 建议卡）
+        if state.get("intent") in ("talk_script", "objection_help") and self.coach is not None:
+            return self._respond_coach(state)
         span = self.trace.start_span(state["run_id"], "respond")
         messages = [{"role": "system", "content": SYSTEM_PROMPT}]
         messages.extend(state.get("history", []))
@@ -113,6 +121,43 @@ class ChatGraph:
         except Exception as exc:  # noqa: BLE001
             self.trace.finish_span(span, "error", {"error": str(exc)})
             return {"reply": f"抱歉，AI 服务暂时不可用：{exc}", "model": "none", "echo": False, "error": str(exc)}
+
+    def _respond_coach(self, state: ChatState) -> dict:
+        span = self.trace.start_span(state["run_id"], "coach_generate")
+        try:
+            raw_user = state.get("user_id") or "0"
+            try:
+                employee_id = int(raw_user)  # JWT eid；非数字身份（anonymous）落 0
+            except ValueError:
+                employee_id = 0
+            result = self.coach.generate(
+                intent=state["intent"],
+                message=state["message"],
+                customer_id=state.get("customer_id"),
+                employee_id=employee_id,
+                jwt=state.get("jwt"),
+                session_id=state["session_id"],
+                run_id=state["run_id"],
+            )
+            self.trace.finish_span(
+                span,
+                "ok",
+                {
+                    "skill": result["skill"]["id"],
+                    "citations": len(result["citations"]),
+                    "suggestion_id": result["suggestion_id"],
+                    "echo": result["echo"],
+                },
+            )
+            return {
+                "reply": result["reply"],
+                "model": "coach",
+                "echo": result["echo"],
+                "coach_result": result,
+            }
+        except Exception as exc:  # noqa: BLE001
+            self.trace.finish_span(span, "error", {"error": str(exc)})
+            return {"reply": f"抱歉，话术生成暂时不可用：{exc}", "model": "none", "echo": False, "error": str(exc)}
 
     def _save_context(self, state: ChatState) -> dict:
         span = self.trace.start_span(state["run_id"], "save_context")

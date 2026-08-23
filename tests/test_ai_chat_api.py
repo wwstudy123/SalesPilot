@@ -10,6 +10,8 @@ def _build_client(monkeypatch, tmp_path) -> TestClient:
     monkeypatch.setenv("SALE_INTERNAL_API_REGISTRY", str(tmp_path / "runs.json"))
     monkeypatch.setenv("SALE_TRACE_DB", str(tmp_path / "trace.db"))
     monkeypatch.setenv("SALE_INTENT_DB", str(tmp_path / "intents.db"))
+    monkeypatch.setenv("SALE_KNOWLEDGE_DB", str(tmp_path / "knowledge.db"))
+    monkeypatch.setenv("SALE_SUGGESTION_DB", str(tmp_path / "suggestions.db"))
     # 强制内存降级，避免依赖本机 Redis
     monkeypatch.setenv("SALE_REDIS_URL", "redis://127.0.0.1:16399/0")
     monkeypatch.delenv("SALE_LLM_API_KEY", raising=False)
@@ -35,9 +37,10 @@ def test_chat_sse_echo_stream(monkeypatch, tmp_path):
     events = _parse_sse(resp.text)
 
     assert events[0]["type"] == "start"
-    deltas = [e for e in events if e["type"] == "delta"]
+    assert events[1]["type"] == "intent"  # M5 全量事件：意图先行
+    tokens = [e for e in events if e["type"] == "token"]
     done = events[-1]
-    assert "".join(e["content"] for e in deltas) == "echo: 今天先拜访哪位客户？"
+    assert "".join(e["content"] for e in tokens) == "echo: 今天先拜访哪位客户？"
     assert done["type"] == "done"
     assert done["status"] == "completed"
     assert done["run_id"] == events[0]["run_id"]

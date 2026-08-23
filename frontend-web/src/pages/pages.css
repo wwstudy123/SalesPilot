@@ -1715,3 +1715,470 @@
   font-size: 13px;
   line-height: 1.8;
 }
+
+/* ---------- M5：AI 话术助手（聊天窗 + 建议卡） ---------- */
+
+.chat-page {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 20px 16px 28px;
+}
+
+.chat-page__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.chat-page__header select {
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(108, 91, 75, 0.3);
+  background: #fff;
+  color: #3d3229;
+}
+
+.chat-page__messages {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 320px;
+  padding: 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(108, 91, 75, 0.14);
+}
+
+.chat-page__empty {
+  color: #8a7866;
+  font-size: 13px;
+}
+
+.chat-page__bubble {
+  max-width: 92%;
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.chat-page__bubble--user {
+  align-self: flex-end;
+  background: rgba(237, 138, 47, 0.16);
+  color: #4a3a2b;
+}
+
+.chat-page__bubble--assistant {
+  align-self: flex-start;
+  background: rgba(243, 238, 232, 0.9);
+  color: #3d3229;
+}
+
+.chat-page__meta {
+  margin: 0 0 6px;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chat-page__meta li {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(108, 91, 75, 0.1);
+  color: #6c5b4b;
+  font-size: 11px;
+}
+
+.chat-page__text {
+  margin: 0;
+  white-space: pre-wrap;
+  font-family: inherit;
+}
+
+.chat-page__typing {
+  color: #8a7866;
+  font-size: 13px;
+}
+
+.chat-page__citations {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  color: #6c5b4b;
+  font-size: 12px;
+}
+
+.chat-page__composer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.chat-page__quick {
+  display: flex;
+  gap: 8px;
+}
+
+.chat-page__input-row {
+  display: flex;
+  gap: 8px;
+}
+
+.chat-page__input-row input {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(108, 91, 75, 0.3);
+}
+
+.suggestion-card {
+  margin-top: 10px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #fffdf9;
+  border: 1px solid rgba(237, 138, 47, 0.35);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.suggestion-card--adopted,
+.suggestion-card--modified {
+  border-color: rgba(74, 156, 96, 0.5);
+}
+
+.suggestion-card--rejected {
+  border-color: rgba(196, 84, 71, 0.45);
+  opacity: 0.82;
+}
+
+.suggestion-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.suggestion-card__skill {
+  font-weight: 600;
+  color: #4a3a2b;
+  font-size: 13px;
+}
+
+.suggestion-card__status {
+  font-size: 12px;
+  color: #8a7866;
+}
+
+.suggestion-card__content pre {
+  margin: 0;
+  white-space: pre-wrap;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.7;
+  color: #3d3229;
+}
+
+.suggestion-card__content textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(108, 91, 75, 0.3);
+  font-family: inherit;
+  font-size: 13px;
+}
+
+.suggestion-card__warnings {
+  margin: 0;
+  padding-left: 18px;
+  color: #b26a2f;
+  font-size: 12px;
+}
+
+.suggestion-card__citations {
+  margin: 0;
+  padding-left: 18px;
+  color: #6c5b4b;
+  font-size: 12px;
+}
+
+.suggestion-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.suggestion-card__actions button {
+  padding: 6px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(108, 91, 75, 0.25);
+  background: rgba(237, 138, 47, 0.9);
+  color: #fff;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.suggestion-card__actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.suggestion-card__actions .secondary-button {
+  background: #fff;
+  color: #4a3a2b;
+}
+
+.suggestion-card__actions .danger-button {
+  background: #fff;
+  color: #c45447;
+  border-color: rgba(196, 84, 71, 0.5);
+}
+
+.suggestion-card__inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.suggestion-card__inputs input {
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(108, 91, 75, 0.3);
+  font-size: 13px;
+}
+
+.suggestion-card__notice {
+  margin: 0;
+  font-size: 12px;
+  color: #b26a2f;
+}
+
+/* ---------- M5：知识库检索测试页 ---------- */
+
+.kb-page {
+  display: grid;
+  gap: 18px;
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}
+
+.kb-page__header h2 {
+  margin: 0 0 4px;
+  font-size: 20px;
+}
+
+.kb-page__header p {
+  margin: 0;
+  color: #8a7868;
+  font-size: 13px;
+}
+
+.kb-stats {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: rgba(255, 250, 245, 0.82);
+  border: 1px solid rgba(255, 235, 210, 0.6);
+}
+
+.kb-stats div {
+  display: grid;
+  gap: 2px;
+  padding: 6px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.66);
+}
+
+.kb-stats span {
+  color: #a5968b;
+  font-size: 11px;
+}
+
+.kb-stats strong {
+  color: var(--brand-600);
+  font-size: 16px;
+}
+
+.kb-stats .secondary-button {
+  margin-left: auto;
+}
+
+.kb-search {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(108, 91, 75, 0.14);
+}
+
+.kb-search__row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.kb-search__row input[type='text'],
+.kb-search__row input:not([type]) {
+  flex: 1;
+  min-width: 220px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(108, 91, 75, 0.3);
+}
+
+.kb-search__row select {
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(108, 91, 75, 0.3);
+  background: #fff;
+}
+
+.kb-search__rewritten {
+  margin: 0;
+  color: #8a7868;
+  font-size: 12px;
+}
+
+.kb-search__empty {
+  margin: 0;
+  color: #a5968b;
+  font-size: 13px;
+}
+
+.kb-hits {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.kb-hit {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(243, 238, 232, 0.78);
+  border-left: 3px solid rgba(237, 138, 47, 0.5);
+}
+
+.kb-hit--hedge {
+  border-left-color: rgba(251, 191, 36, 0.7);
+}
+
+.kb-hit__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.kb-hit__label {
+  font-weight: 700;
+  color: var(--brand-600);
+  font-size: 12px;
+}
+
+.kb-hit__title {
+  font-size: 14px;
+  color: #3d3229;
+}
+
+.kb-hit__score {
+  margin-left: auto;
+  color: #8a7868;
+  font-size: 12px;
+}
+
+.kb-hit__hedge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(251, 191, 36, 0.2);
+  color: #9a6b12;
+  font-size: 11px;
+}
+
+.kb-hit__content {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.7;
+  color: #5a4a3b;
+}
+
+.kb-upload {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 14px;
+  background: rgba(255, 250, 245, 0.82);
+  border: 1px solid rgba(255, 235, 210, 0.6);
+}
+
+.kb-upload h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.kb-upload__row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.kb-upload__row input {
+  flex: 1;
+  min-width: 200px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(108, 91, 75, 0.3);
+}
+
+.kb-upload__row select {
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(108, 91, 75, 0.3);
+  background: #fff;
+}
+
+.kb-upload textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(108, 91, 75, 0.3);
+  font: inherit;
+  resize: vertical;
+}
+
+.kb-upload button {
+  justify-self: start;
+  padding: 8px 18px;
+  border-radius: 12px;
+  border: none;
+  background: linear-gradient(135deg, #f29c43, #df7420 55%, #ebb145);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.kb-upload button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.kb-page__notice {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(74, 222, 128, 0.12);
+  color: #4b6b3a;
+  font-size: 13px;
+}

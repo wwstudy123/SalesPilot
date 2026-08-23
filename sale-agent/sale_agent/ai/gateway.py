@@ -1,12 +1,15 @@
-"""LLM Gateway：chat/embedding 两端点 + 模型路由 + 重试/超时 + 成本记账。
+"""LLM Gateway：chat/embedding/rerank 三端点 + 模型路由 + 重试/超时 + 成本记账。
 
 OpenAI 兼容协议；未配置 api_key 时进入 echo 模式（无外部依赖，供开发/测试）。
+rerank 默认走 LLM listwise（架构 §2.4）：让 chat 模型对候选输出按相关性排序，
+不部署独立 reranker 模型；echo 模式返回空列表，由管线降级为 RRF 直出（架构 A8）。
 """
 
 from __future__ import annotations
 
 import logging
 import os
+import re
 import threading
 import time
 from dataclasses import dataclass, field
@@ -168,6 +171,47 @@ class LLMGateway:
             return [list(item.get("embedding", [])) for item in items]
         except Exception as exc:  # noqa: BLE001
             raise RuntimeError(f"llm embedding decode failed: {exc}") from exc
+
+    # ---------- rerank（LLM listwise，架构 §2.4） ----------
+
+    def rerank(self, query: str, documents: list[dict], top_n: int = 5) -> list[int]:
+        """LLM listwise 重排：让 chat 模型对候选按相关性排序，返回下标列表（降序）。
+
+        echo 模式或无候选 → 返回空列表，调用方应降级为 RRF 直出（架构 A8）。
+        解析失败 → 同样返回空列表，由调用方降级。
+        """
+        if self.settings.echo_mode or not documents:
+            return []
+        limited = documents[:20]  # listwise 候选上限，与 RAG RETRIEVE_TOP 对齐
+        numbered = [
+            f"[{i}] 标题：{doc.get('title', '')} 内容：{str(doc.get('content', ''))[:200]}"
+            for i, doc in enumerate(limited)
+        ]
+        system = (
+            "你是检索重排器。按与查询的相关性从高到低输出候选文档序号，"
+            "每行一个 [n] 格式，仅输出序号不要解释。"
+        )
+        user = f"查询：{query}\n\n候选：\n" + "\n".join(numbered)
+        result = self.chat(
+            [{"role": "system", "content": system}, {"role": "user", "content": user}],
+            temperature=0.0,
+        )
+        return self._parse_rerank_indices(result.content, len(limited), top_n)
+
+    @staticmethod
+    def _parse_rerank_indices(text: str, total: int, top_n: int) -> list[int]:
+        """解析 [n] 序号；去重保序，剔除越界；未出现者按原序兜底。"""
+        seen: set[int] = set()
+        ordered: list[int] = []
+        for match in re.finditer(r"\[(\d+)\]", text):
+            idx = int(match.group(1))
+            if 0 <= idx < total and idx not in seen:
+                seen.add(idx)
+                ordered.append(idx)
+        for i in range(total):  # 模型漏列的按原序补齐，保证不丢候选
+            if i not in seen:
+                ordered.append(i)
+        return ordered[: max(1, top_n)] if ordered else []
 
     # ---------- 重试/超时 ----------
 
