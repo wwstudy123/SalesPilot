@@ -6,7 +6,7 @@ help: ## 显示可用命令
 # ===== 本地启动 =====
 
 api: ## 启动 Python Internal API（uvicorn，:8000）
-	python -m agentkit.entry.internal_api.run
+	python -m sagt_agent.entry.internal_api.run
 
 api-java: ## 启动 Java 平台层（:8080，需先 compose-up）
 	cd java-platform && mvn spring-boot:run
@@ -14,7 +14,7 @@ api-java: ## 启动 Java 平台层（:8080，需先 compose-up）
 api-web: ## 启动前端开发服务器（:5173）
 	cd frontend-web && npm run dev
 
-compose-up: ## 启动 PostgreSQL（agentkit 库）
+compose-up: ## 启动 PostgreSQL（sagt_agent 库）
 	docker compose up -d
 
 compose-down: ## 停止 PostgreSQL
@@ -38,5 +38,5 @@ test-web: ## 前端类型检查与构建
 lint: lint-py ## 代码检查
 
 lint-py: ## ruff 检查与自动修复
-	python -m ruff check agentkit tests
-	python -m ruff format --check agentkit tests
+	python -m ruff check sagt_agent tests
+	python -m ruff format --check sagt_agent tests

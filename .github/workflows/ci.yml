@@ -19,7 +19,7 @@ jobs:
           pip install -e .
           pip install pytest httpx ruff
       - name: Ruff
-        run: ruff check agentkit tests
+        run: ruff check sagt_agent tests
       - name: Pytest
         run: pytest tests/ -q
 

@@ -1,0 +1,15 @@
+com/acme/platform/JavaPlatformApplication.class
+com/acme/platform/interfaces/dto/ProjectResponse.class
+com/acme/platform/domain/model/ProjectRecord.class
+com/acme/platform/application/ProjectApplicationService.class
+com/acme/platform/infrastructure/repository/ProjectRepository.class
+com/acme/platform/infrastructure/repository/JdbcProjectRepository.class
+com/acme/platform/interfaces/dto/ErrorResponse.class
+com/acme/platform/interfaces/dto/ApiResponse.class
+com/acme/platform/interfaces/dto/ProjectListResponse.class
+com/acme/platform/interfaces/dto/CreateProjectRequest.class
+com/acme/platform/interfaces/http/ApiExceptionHandler.class
+com/acme/platform/interfaces/dto/HealthResponse.class
+com/acme/platform/interfaces/http/HealthController.class
+com/acme/platform/infrastructure/repository/InMemoryProjectRepository.class
+com/acme/platform/interfaces/http/ProjectController.class

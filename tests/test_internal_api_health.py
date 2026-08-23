@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
-from agentkit.internal_api.app import create_app
+from sagt_agent.internal_api.app import create_app
 
 
 def test_health_returns_ok(monkeypatch, tmp_path):
