@@ -1,5 +1,5 @@
 import { apiFetch } from './client'
-import type { Customer, Employee, FollowUp, LoginResult, Purchase } from '../types/api'
+import type { Customer, Employee, FollowUp, LoginResult, ProfileField, Purchase } from '../types/api'
 
 const TOKEN_KEY = 'sale_token'
 
@@ -57,4 +57,8 @@ export async function fetchFollowUps(customerId: number) {
 
 export async function fetchPurchases(customerId: number) {
   return authedFetch<Purchase[]>(`/api/v1/customers/${customerId}/purchases`)
+}
+
+export async function fetchProfileFields(customerId: number) {
+  return authedFetch<ProfileField[]>(`/api/v1/customers/${customerId}/profile`)
 }

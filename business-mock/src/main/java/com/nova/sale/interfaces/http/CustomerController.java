@@ -2,12 +2,15 @@ package com.nova.sale.interfaces.http;
 
 import com.nova.sale.application.CustomerService;
 import com.nova.sale.application.FollowUpService;
+import com.nova.sale.application.ProfileService;
 import com.nova.sale.application.PurchaseService;
 import com.nova.sale.infrastructure.security.AuthContext;
 import com.nova.sale.interfaces.dto.ApiResponse;
 import com.nova.sale.interfaces.dto.CustomerRequest;
 import com.nova.sale.interfaces.dto.CustomerResponse;
 import com.nova.sale.interfaces.dto.FollowUpResponse;
+import com.nova.sale.interfaces.dto.ProfileFieldResponse;
+import com.nova.sale.interfaces.dto.ProfileUpdateRequest;
 import com.nova.sale.interfaces.dto.PurchaseResponse;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -27,12 +30,14 @@ public class CustomerController {
     private final CustomerService customerService;
     private final FollowUpService followUpService;
     private final PurchaseService purchaseService;
+    private final ProfileService profileService;
 
     public CustomerController(CustomerService customerService, FollowUpService followUpService,
-                              PurchaseService purchaseService) {
+                              PurchaseService purchaseService, ProfileService profileService) {
         this.customerService = customerService;
         this.followUpService = followUpService;
         this.purchaseService = purchaseService;
+        this.profileService = profileService;
     }
 
     @GetMapping
@@ -72,5 +77,23 @@ public class CustomerController {
     public ApiResponse<List<PurchaseResponse>> purchases(@PathVariable Long customerId) {
         return ApiResponse.ok(purchaseService.listByCustomer(customerId, AuthContext.current()).stream()
                 .map(PurchaseResponse::from).toList());
+    }
+
+    @GetMapping("/{customerId}/profile")
+    public ApiResponse<List<ProfileFieldResponse>> profile(@PathVariable Long customerId) {
+        return ApiResponse.ok(profileService.getProfile(customerId, AuthContext.current()).stream()
+                .map(ProfileFieldResponse::from).toList());
+    }
+
+    /** 画像字段更新：HITL 闸门，必须携带并消费 approval_token（无凭证 403）。 */
+    @PutMapping("/{customerId}/profile/fields")
+    public ApiResponse<List<ProfileFieldResponse>> updateProfileFields(
+            @PathVariable Long customerId, @Valid @RequestBody ProfileUpdateRequest request) {
+        List<ProfileService.FieldUpdate> updates = request.fields().stream()
+                .map(item -> new ProfileService.FieldUpdate(item.fieldKey(), item.fieldValue(), item.evidence()))
+                .toList();
+        return ApiResponse.ok(profileService.applyUpdates(customerId, updates,
+                request.approvalToken(), AuthContext.current()).stream()
+                .map(ProfileFieldResponse::from).toList());
     }
 }

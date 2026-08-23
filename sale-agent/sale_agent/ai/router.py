@@ -1,14 +1,19 @@
-"""/api/ai 路由：POST /chat SSE 流式、GET /runs/{run_id} Trace、意图 Schema 管理、/health。"""
+"""/api/ai 路由：POST /chat SSE 流式、GET /runs/{run_id} Trace、意图 Schema 管理、
+M4：画像刷新/事件触发、提案确认（HITL）、/health。"""
 
 from __future__ import annotations
 
 import json
+import logging
+import threading
 import uuid
 from typing import AsyncIterator
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Header, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/ai")
 
@@ -22,6 +27,21 @@ class ChatRequest(BaseModel):
 
 class ExampleRequest(BaseModel):
     text: str = Field(min_length=1, description="意图样例文本")
+
+
+class FollowUpEvent(BaseModel):
+    """business-mock 跟进落库事件（架构 §3.3 的 MVP 简化形态）。"""
+
+    event: str = "follow_up.created"
+    follow_up_id: int
+    customer_id: int
+    employee_id: int
+    jwt: str | None = Field(default=None, description="员工 JWT（用于只读工具拉事实）")
+
+
+class ProfileRefreshRequest(BaseModel):
+    customer_id: int
+    employee_id: int
 
 
 def _sse(event: dict) -> str:
@@ -107,6 +127,62 @@ async def add_intent_example(request: Request, name: str, body: ExampleRequest) 
     example_id = catalog.add_example(name, body.text)
     request.app.state.intent_router.reload()  # 样例库动态渲染，零发版
     return {"code": "OK", "message": "success", "data": {"id": example_id, "intent": name}}
+
+
+# ---------- M4：画像触发与提案（HITL） ----------
+
+
+@router.post("/events/follow_up_created")
+async def follow_up_event(request: Request, body: FollowUpEvent) -> dict:
+    """触发链路：新跟进落库 → 异步增量画像（验收：30s 内出提案）。"""
+    if not body.jwt:
+        return {"code": "OK", "message": "skipped: missing jwt", "data": {"accepted": False}}
+    subgraph = request.app.state.profile_subgraph
+    thread = threading.Thread(
+        target=subgraph.refresh,
+        args=(body.customer_id, body.employee_id, body.jwt),
+        kwargs={"source": f"follow_up#{body.follow_up_id}", "fresh": True},
+        daemon=True,
+        name=f"profile-refresh-{body.customer_id}",
+    )
+    thread.start()
+    return {"code": "OK", "message": "success", "data": {"accepted": True, "customer_id": body.customer_id}}
+
+
+@router.post("/profile/refresh")
+async def profile_refresh(request: Request, body: ProfileRefreshRequest, authorization: str | None = Header(default=None)) -> dict:
+    """手动重新分析（同步）：前端携员工 JWT。"""
+    jwt = (authorization or "").removeprefix("Bearer ").strip()
+    if not jwt:
+        raise HTTPException(status_code=401, detail="需要员工 JWT")
+    result = request.app.state.profile_subgraph.refresh(body.customer_id, body.employee_id, jwt, source="manual")
+    return {"code": "OK", "message": "success", "data": result}
+
+
+@router.get("/proposals")
+async def list_proposals(request: Request, customer_id: int | None = None, status: str | None = None) -> dict:
+    store = request.app.state.proposal_store
+    return {"code": "OK", "message": "success", "data": store.list(customer_id, status)}
+
+
+@router.post("/proposals/{proposal_id}/confirm")
+async def confirm_proposal(request: Request, proposal_id: str, authorization: str | None = Header(default=None)) -> dict:
+    """员工确认：签发 approval_token → 携凭证执行 write → 提案收尾。"""
+    from sale_agent.hitl.flow import confirm_proposal as confirm
+
+    jwt = (authorization or "").removeprefix("Bearer ").strip()
+    if not jwt:
+        raise HTTPException(status_code=401, detail="需要员工 JWT")
+    result = confirm(request.app.state.proposal_store, request.app.state.mcp_client, proposal_id, jwt)
+    return {"code": "OK", "message": "success", "data": result}
+
+
+@router.post("/proposals/{proposal_id}/reject")
+async def reject_proposal(request: Request, proposal_id: str) -> dict:
+    from sale_agent.hitl.flow import reject_proposal as reject
+
+    result = reject(request.app.state.proposal_store, proposal_id)
+    return {"code": "OK", "message": "success", "data": result}
 
 
 @router.get("/health")

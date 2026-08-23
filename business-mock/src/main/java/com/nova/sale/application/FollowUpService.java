@@ -12,10 +12,13 @@ import java.util.List;
 public class FollowUpService {
     private final FollowUpRepository followUpRepository;
     private final CustomerService customerService;
+    private final AiEventNotifier aiEventNotifier;
 
-    public FollowUpService(FollowUpRepository followUpRepository, CustomerService customerService) {
+    public FollowUpService(FollowUpRepository followUpRepository, CustomerService customerService,
+                           AiEventNotifier aiEventNotifier) {
         this.followUpRepository = followUpRepository;
         this.customerService = customerService;
+        this.aiEventNotifier = aiEventNotifier;
     }
 
     public List<FollowUp> listByCustomer(Long customerId, AuthContext current) {
@@ -23,12 +26,15 @@ public class FollowUpService {
         return followUpRepository.findByCustomer(customerId);
     }
 
-    public FollowUp create(FollowUpRequest request, AuthContext current) {
+    public FollowUp create(FollowUpRequest request, AuthContext current, String jwt) {
         customerService.requireOwned(request.customerId(), current);
         FollowUp followUp = new FollowUp(
                 null, request.customerId(), current.employeeId(),
                 request.channel(), request.content(), request.nextFollowAt(), null
         );
-        return followUpRepository.save(followUp);
+        FollowUp saved = followUpRepository.save(followUp);
+        // M4 触发链路：新跟进落库 → 通知 sale-agent 增量画像（验收：30s 内出提案）
+        aiEventNotifier.followUpCreated(saved.id(), saved.customerId(), saved.employeeId(), jwt);
+        return saved;
     }
 }

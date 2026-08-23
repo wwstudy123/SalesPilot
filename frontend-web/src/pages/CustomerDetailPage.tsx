@@ -1,6 +1,7 @@
 import { Link, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { fetchCustomer, fetchFollowUps, fetchPurchases } from '../lib/api/customers'
+import { ProfilePanel } from '../components/profile/ProfilePanel'
 import { formatDate } from '../lib/utils/format'
 import './pages.css'
 
@@ -47,6 +48,8 @@ export function CustomerDetailPage() {
       ) : null}
 
       <div className='customer-detail__columns'>
+        <ProfilePanel customerId={id} />
+
         <section className='panel'>
           <h3>跟进时间线（{followUpsQuery.data?.length ?? 0}）</h3>
           {followUpsQuery.isLoading ? <p>加载中…</p> : null}

@@ -8,6 +8,7 @@ import com.nova.sale.interfaces.dto.FollowUpResponse;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -21,7 +22,9 @@ public class FollowUpController {
     }
 
     @PostMapping
-    public ApiResponse<FollowUpResponse> create(@Valid @RequestBody FollowUpRequest request) {
-        return ApiResponse.ok(FollowUpResponse.from(followUpService.create(request, AuthContext.current())));
+    public ApiResponse<FollowUpResponse> create(@Valid @RequestBody FollowUpRequest request,
+                                                @RequestHeader(value = "Authorization", required = false) String authorization) {
+        String jwt = authorization == null ? null : authorization.replaceFirst("^Bearer\\s*", "");
+        return ApiResponse.ok(FollowUpResponse.from(followUpService.create(request, AuthContext.current(), jwt)));
     }
 }

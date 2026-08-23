@@ -1,7 +1,7 @@
 # DocAssistant-Skeleton（SalesPilot 零售销售智能体系统 · 工程骨架）
 
 > 依据冻结文档：《SalesPilot-需求文档 v1.2》《SalesPilot-技术架构设计 v1.2》《SalesPilot-MVP方案与任务拆解 v1.2》
-> 当前阶段：**M3 意图分类** —— 13 意图 Schema（SQLite 动态可增补）+ Rule/Embedding/LLM 三路融合路由 + decision_path/confidence 落库。
+> 当前阶段：**M4 画像 Agent** —— mcp-server 五工具网关（权限四闸门）+ Profile 子图（抽取/diff/提案）+ HITL 确认流（approval_token 一次性凭证）+ 事件触发链路。
 
 ## 架构总览
 
@@ -10,18 +10,19 @@ frontend-web (React 18 + Vite 双入口, :5173)
   ├── /api/*     ──代理──▶ business-mock (Spring Boot, :8080) ──▶ MySQL 8
   ├── /api/ai/*  ──代理──▶ sale-agent (FastAPI, :8000) ──▶ LangGraph Runtime
   └── /internal/* ──代理──▶ sale-agent（遗留 run 管理端点，M2 起迁 /api/ai）
-business-mock ──HTTP──▶ mcp-server (:9010)（M4 起：统一工具层）
+sale-agent ──工具调用──▶ mcp-server (:9010) ──转发──▶ business-mock
+business-mock ──事件通知──▶ sale-agent /api/ai/events/follow_up_created（补录即触发画像刷新）
 ```
 
 ## 目录结构
 
-| 目录 | 职责 | 现状（M3） |
+| 目录 | 职责 | 现状（M4） |
 |---|---|---|
-| `sale-agent/` | Python 3.11 + FastAPI + LangGraph：AI 核心引擎（包名 `sale_agent`） | `ai/` 包：Gateway + Trace + Redis 上下文 + LangGraph 主图 + /api/ai SSE；`intent/` 包：13 意图 Schema + Rule/Embedding/LLM 三路融合路由 |
-| `business-mock/` | Java 21 + Spring Boot 3.3：Mock CRM，业务事实唯一写入口（包名 `com.nova.sale`） | 四域 CRUD + JWT + 归属校验 + Flyway V1 + 种子数据（§3 规格含金标预埋） |
-| `mcp-server/` | Python 统一工具层：权限闸门/熔断/幂等/缓存/审计 | :9010 `/health` 骨架，M4 起落 10 工具 |
-| `frontend-web/` | React 双入口：`admin.html`（sale_admin）/ `sidebar.html`（sale_sidebar） | 登录 + 我的客户列表 + 客户详情（时间线/消费），M4/M7 起按端分化 |
-| `tests/` | pytest 冒烟（health / runs / LangGraph 管线） | 随改名同步通过 |
+| `sale-agent/` | Python 3.11 + FastAPI + LangGraph：AI 核心引擎（包名 `sale_agent`） | `ai/` 包：Gateway + Trace + Redis 上下文 + 主图 + SSE；`intent/` 包：13 意图三路融合路由；`profile/` 包：画像子图（抽取/diff/提案）；`hitl/` 包：proposal 存储与确认流 |
+| `business-mock/` | Java 21 + Spring Boot 3.3：Mock CRM，业务事实唯一写入口（包名 `com.nova.sale`） | 四域 CRUD + JWT + 归属校验 + Flyway V1/V2（画像字段表 + 审批凭证表）+ 无凭证 write 403 + AI 事件通知器 |
+| `mcp-server/` | Python 统一工具层：权限闸门/熔断/幂等/缓存/审计 | 5 工具（4 只读 + update_profile_field）+ 权限四闸门 + 幂等重放 + SQLite 审计 |
+| `frontend-web/` | React 双入口：`admin.html`（sale_admin）/ `sidebar.html`（sale_sidebar） | 登录 + 客户列表/详情 + AI 画像面板（画像卡/确认面板/首访清单，10s 轮询提案） |
+| `tests/` | pytest 冒烟与单测（62 条） | 意图路由 16 + 画像 HITL 15 + 网关四闸门 9 + 其余 |
 | `config/` | LLM 配置示例 | `llm.example.json` |
 
 ## 端口总账
@@ -30,9 +31,9 @@ business-mock ──HTTP──▶ mcp-server (:9010)（M4 起：统一工具层�
 |---|---|---|
 | mysql | 3306 | 库名 sale，账号 sale/sale_pass |
 | redis | 6379 | AOF 关闭（演示） |
-| business-mock | 8080 | /api/v1/health、/api/v1/auth/login、四域 CRUD |
-| sale-agent | 8000 | /api/ai/chat（SSE）、/api/ai/runs/{id}、/api/ai/health；旧 /internal/v1 保留 |
-| mcp-server | 9010 | /health |
+| business-mock | 8080 | /api/v1/health、/api/v1/auth/login、四域 CRUD、画像/凭证接口 |
+| sale-agent | 8000 | /api/ai/chat（SSE）、/api/ai/profile/refresh、/api/ai/proposals；旧 /internal/v1 保留 |
+| mcp-server | 9010 | /health、/tools、/tools/{name}/call、/audit/recent |
 | frontend-web | 5173 | /admin.html、/sidebar.html |
 
 ## 本地运行
@@ -78,6 +79,16 @@ AI 侧环境变量（可选）：`SALE_LLM_API_KEY` / `SALE_LLM_BASE_URL` / `SAL
 - [x] 路由接入主图：done 事件与 Trace 均带 intent/confidence/decision_path/routing_reason（Monitor 可验收）
 - [x] 自测集（tests/intent_eval_set.py，39 条 paraphrase）L1 = 36/39 = **92.3%** ≥ 85%；pytest 39 passed + ruff 全绿
 
-## 下一步（M4 画像 Agent）
+## M4 验收清单
 
-mcp-server 骨架 + 4 个只读工具（search_customers/get_customer_profile/list_follow_ups/list_purchases）+ 权限中间件（只读 bypass、write 强制 proposal 确认）；Profile 子图（LLM 结构化抽取 + 字段级 diff + 更新提案）；HITL 通用机制（proposal 表 + approval_token + 幂等 + 30min 过期）；前端画像卡与确认面板。
+- [x] mcp-server 工具网关：5 工具（search_customers/get_customer_profile/list_follow_ups/list_purchases + update_profile_field）；权限四闸门：JWT 身份（401）→ 角色（403）→ 客户归属（越权 403 E_FORBIDDEN）→ write 凭证（无 approval_token 100% 拒 E_APPROVAL_REQUIRED）；只读 bypass 免确认 + 缓存（profile 10min/list 60s，X-No-Cache 供事件刷新绕过）；幂等键重放；SQLite 审计（ok/denied/upstream_error + bypass 标记，`GET /audit/recent`）
+- [x] business-mock V2：customer_profile_field（字段级 upsert，version+1 留痕）+ approval（一次性凭证：SecureRandom token / 30min TTL / CAS 消费 / 错误码 E_APPROVAL_REQUIRED、INVALID、MISMATCH、EXPIRED、USED）；无凭证 write 403；补录跟进异步通知 sale-agent（失败仅 warn 不阻断主链路）
+- [x] Profile 子图：事实装载（三工具）→ 结构化抽取（LLM JSON Schema 约束；echo 降级确定性规则，每条附 evidence 回溯 follow_up#id；累计消费额定 value_tier）→ 字段级 diff（变更附 oldValue）→ 提案；记录 <3 条不抽取，返首访采集清单（E13）；全程 Trace span
+- [x] HITL 确认流：proposal 表（SQLite）+ 30min 惰性过期 + 同客户同字段 pending 提案自动合并；confirm → 签发 approval_token → 携凭证经网关 write → 提案收尾；重复确认 409；write 失败提案保持 pending 可重试
+- [x] 触发链路：补录跟进 → business-mock 事件通知 → sale-agent 异步刷新（fresh 绕缓存）→ 实测 6s 内出 pending 提案；前端画像面板 10s 轮询自动呈现
+- [x] 前端：客户详情页 AI 画像面板（画像卡字段/依据/版本；待确认提案新旧值并呈 + 确认写入/放弃；空态首访清单）
+- [x] pytest 62 passed（新增：HITL 15 + 网关四闸门 9）+ ruff 全绿 + mvn test + 前端构建通过
+
+## 下一步（M5）
+
+按 MVP 文档推进：事件失效正式化（outbox/消息驱动替代 X-No-Cache）、熔断/限流、Trace 回放面板等 Monitor 验收项。

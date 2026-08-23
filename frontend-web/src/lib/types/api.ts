@@ -54,6 +54,51 @@ export type Purchase = {
   createdAt: string | null
 }
 
+// ---------- M4：画像与提案（HITL） ----------
+
+export type ProfileField = {
+  id: number
+  customerId: number
+  fieldKey: string
+  fieldValue: string
+  evidence: string | null
+  version: number
+  updatedBy: number | null
+  updatedAt: string | null
+}
+
+export type ProposalField = {
+  fieldKey: string
+  fieldValue: string
+  evidence: string
+  oldValue?: string
+}
+
+export type Proposal = {
+  id: string
+  customer_id: number
+  employee_id: number
+  tool: string
+  fields: ProposalField[]
+  status: string
+  run_id: string | null
+  source: string | null
+  created_at: string
+  expires_at: string
+  resolved_at: string | null
+}
+
+export type ProfileRefreshResult = {
+  outcome: 'first_visit_checklist' | 'no_change' | 'proposal' | 'error'
+  customer_id: number
+  record_count?: number
+  checklist?: string[]
+  proposal?: Proposal
+  merged?: boolean
+  error?: string
+  run_id: string
+}
+
 export type AwaitingConfirmation = {
   pauseAfterSection: number
   nextSection: number

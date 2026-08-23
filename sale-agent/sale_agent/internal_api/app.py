@@ -10,6 +10,7 @@ from sale_agent.ai.gateway import LLMGateway
 from sale_agent.ai.graph import ChatGraph
 from sale_agent.ai.router import router as ai_router
 from sale_agent.ai.trace import TraceStore
+from sale_agent.hitl.store import ProposalStore
 from sale_agent.intent.embedding import EmbeddingClassifier
 from sale_agent.intent.fusion import IntentRouter
 from sale_agent.intent.llm import LLMClassifier
@@ -23,6 +24,9 @@ from sale_agent.internal_api.routes import install_error_handlers, router
 from sale_agent.internal_api.service import RunService
 from sale_agent.internal_api.settings import load_settings
 from sale_agent.internal_api.worker import WorkerManager
+from sale_agent.profile.extractor import ProfileExtractor
+from sale_agent.profile.mcp_client import McpClient
+from sale_agent.profile.subgraph import ProfileSubgraph
 
 DEFAULT_CORS_ORIGINS = [
     "http://127.0.0.1:5173",
@@ -81,6 +85,12 @@ def create_app() -> FastAPI:
     app.state.intent_catalog = intent_catalog
     app.state.intent_router = intent_router
     app.state.chat_graph = ChatGraph(gateway, context_store, trace_store, intent_router)
+    # M4：Profile 子图 + HITL 提案
+    proposal_store = ProposalStore()
+    mcp_client = McpClient()
+    app.state.proposal_store = proposal_store
+    app.state.mcp_client = mcp_client
+    app.state.profile_subgraph = ProfileSubgraph(mcp_client, ProfileExtractor(gateway), proposal_store, trace_store)
     app.include_router(router)
     app.include_router(project_router)
     app.include_router(ai_router)
