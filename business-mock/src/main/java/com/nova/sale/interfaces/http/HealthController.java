@@ -11,6 +11,6 @@ import org.springframework.web.bind.annotation.RestController;
 public class HealthController {
     @GetMapping("/health")
     public ApiResponse<HealthResponse> health() {
-        return ApiResponse.ok(new HealthResponse("ok", "java-platform"));
+        return ApiResponse.ok(new HealthResponse("ok", "business-mock"));
     }
 }

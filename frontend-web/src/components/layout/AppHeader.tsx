@@ -7,9 +7,14 @@ const navItems = [
     isActive: (pathname: string) => pathname === '/',
   },
   {
-    to: '/projects',
-    label: '项目列表',
-    isActive: (pathname: string) => pathname.startsWith('/projects'),
+    to: '/customers',
+    label: '我的客户',
+    isActive: (pathname: string) => pathname.startsWith('/customers'),
+  },
+  {
+    to: '/login',
+    label: '登录',
+    isActive: (pathname: string) => pathname.startsWith('/login'),
   },
 ]
 
@@ -21,7 +26,7 @@ export function AppHeader() {
     <header className='app-header'>
       <button className='brand' onClick={() => navigate('/')}>
         <span className='brand__logo'>✦</span>
-        <span className='brand__text'>Agent<span className='brand__text-accent'>Kit</span></span>
+        <span className='brand__text'>Sales<span className='brand__text-accent'>Pilot</span></span>
       </button>
 
       <nav className='app-header__nav'>

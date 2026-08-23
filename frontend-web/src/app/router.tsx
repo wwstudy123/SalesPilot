@@ -1,7 +1,9 @@
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom'
 import { AppShell } from '../components/layout/AppShell'
+import { CustomerDetailPage } from '../pages/CustomerDetailPage'
+import { CustomersPage } from '../pages/CustomersPage'
 import { HomePage } from '../pages/HomePage'
-import { ProjectsPage } from '../pages/ProjectsPage'
+import { LoginPage } from '../pages/LoginPage'
 
 const router = createBrowserRouter([
   {
@@ -9,7 +11,9 @@ const router = createBrowserRouter([
     element: <AppShell />,
     children: [
       { index: true, element: <HomePage /> },
-      { path: 'projects', element: <ProjectsPage /> },
+      { path: 'login', element: <LoginPage /> },
+      { path: 'customers', element: <CustomersPage /> },
+      { path: 'customers/:customerId', element: <CustomerDetailPage /> },
       { path: '*', element: <Navigate to='/' replace /> },
     ],
   },

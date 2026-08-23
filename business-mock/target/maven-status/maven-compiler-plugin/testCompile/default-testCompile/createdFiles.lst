@@ -1,4 +1,4 @@
-com/nova/sale/application/ProjectApplicationServiceTest.class
 com/nova/sale/interfaces/http/ApiExceptionHandlerTest.class
 com/nova/sale/interfaces/http/HealthControllerTest.class
 com/nova/sale/JavaPlatformApplicationTests.class
+com/nova/sale/interfaces/http/CustomerApiIntegrationTest.class

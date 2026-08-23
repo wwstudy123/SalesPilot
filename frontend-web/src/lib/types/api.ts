@@ -4,24 +4,54 @@ export type ApiEnvelope<T> = {
   data: T
 }
 
-export type Project = {
-  projectId: string
-  title: string
-  premise: string
-  style: string | null
+export type LoginResult = {
+  token: string
+  employeeId: number
+  name: string
+  role: string
+}
+
+export type Employee = {
+  id: number
+  username: string
+  name: string
+  role: string
+  phone: string | null
+}
+
+export type Customer = {
+  id: number
+  ownerId: number
+  name: string
+  phone: string | null
+  gender: string
+  lifecycleStage: string
+  source: string | null
+  remark: string | null
   createdAt: string | null
   updatedAt: string | null
 }
 
-export type ProjectListResponse = {
-  items: Project[]
+export type FollowUp = {
+  id: number
+  customerId: number
+  employeeId: number
+  channel: string
+  content: string
+  nextFollowAt: string | null
+  createdAt: string | null
 }
 
-export type CreateProjectRequest = {
-  projectId: string
-  title: string
-  premise?: string
-  style?: string
+export type Purchase = {
+  id: number
+  customerId: number
+  productName: string
+  category: string
+  amount: number
+  quantity: number
+  purchasedAt: string | null
+  remark: string | null
+  createdAt: string | null
 }
 
 export type AwaitingConfirmation = {

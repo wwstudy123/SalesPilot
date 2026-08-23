@@ -1,0 +1,76 @@
+package com.nova.sale.interfaces.http;
+
+import com.nova.sale.application.CustomerService;
+import com.nova.sale.application.FollowUpService;
+import com.nova.sale.application.PurchaseService;
+import com.nova.sale.infrastructure.security.AuthContext;
+import com.nova.sale.interfaces.dto.ApiResponse;
+import com.nova.sale.interfaces.dto.CustomerRequest;
+import com.nova.sale.interfaces.dto.CustomerResponse;
+import com.nova.sale.interfaces.dto.FollowUpResponse;
+import com.nova.sale.interfaces.dto.PurchaseResponse;
+import jakarta.validation.Valid;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/v1/customers")
+public class CustomerController {
+    private final CustomerService customerService;
+    private final FollowUpService followUpService;
+    private final PurchaseService purchaseService;
+
+    public CustomerController(CustomerService customerService, FollowUpService followUpService,
+                              PurchaseService purchaseService) {
+        this.customerService = customerService;
+        this.followUpService = followUpService;
+        this.purchaseService = purchaseService;
+    }
+
+    @GetMapping
+    public ApiResponse<List<CustomerResponse>> list() {
+        return ApiResponse.ok(customerService.list(AuthContext.current()).stream()
+                .map(CustomerResponse::from).toList());
+    }
+
+    @GetMapping("/{customerId}")
+    public ApiResponse<CustomerResponse> get(@PathVariable Long customerId) {
+        return ApiResponse.ok(CustomerResponse.from(customerService.get(customerId, AuthContext.current())));
+    }
+
+    @PostMapping
+    public ApiResponse<CustomerResponse> create(@Valid @RequestBody CustomerRequest request) {
+        return ApiResponse.ok(CustomerResponse.from(customerService.create(request, AuthContext.current())));
+    }
+
+    @PutMapping("/{customerId}")
+    public ApiResponse<CustomerResponse> update(@PathVariable Long customerId,
+                                                @Valid @RequestBody CustomerRequest request) {
+        return ApiResponse.ok(CustomerResponse.from(customerService.update(customerId, request, AuthContext.current())));
+    }
+
+    @DeleteMapping("/{customerId}")
+    public ApiResponse<CustomerResponse> delete(@PathVariable Long customerId) {
+        return ApiResponse.ok(CustomerResponse.from(customerService.softDelete(customerId, AuthContext.current())));
+    }
+
+    @GetMapping("/{customerId}/follow-ups")
+    public ApiResponse<List<FollowUpResponse>> followUps(@PathVariable Long customerId) {
+        return ApiResponse.ok(followUpService.listByCustomer(customerId, AuthContext.current()).stream()
+                .map(FollowUpResponse::from).toList());
+    }
+
+    @GetMapping("/{customerId}/purchases")
+    public ApiResponse<List<PurchaseResponse>> purchases(@PathVariable Long customerId) {
+        return ApiResponse.ok(purchaseService.listByCustomer(customerId, AuthContext.current()).stream()
+                .map(PurchaseResponse::from).toList());
+    }
+}

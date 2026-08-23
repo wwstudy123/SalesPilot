@@ -1,4 +1,4 @@
-.PHONY: help api api-mcp api-java api-web test test-py test-java test-web lint lint-py compose-up compose-down
+.PHONY: help api api-mcp api-java api-web seed seed-gen test test-py test-java test-web lint lint-py compose-up compose-down
 
 help: ## 显示可用命令
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
@@ -22,6 +22,14 @@ compose-up: ## 启动 MySQL 8 + Redis 7（sale 库）
 
 compose-down: ## 停止 MySQL / Redis
 	docker compose down
+
+# ===== 种子数据 =====
+
+seed-gen: ## 重新生成种子 SQL（§3 规格，金标预埋）
+	python3 scripts/generate_seed.py
+
+seed: ## 灌入种子数据到 sale-mysql（需先 compose-up）
+	docker exec -i sale-mysql mysql -usale -psale_pass --default-character-set=utf8mb4 sale < business-mock/src/main/resources/db/seed/seed.sql
 
 # ===== 测试 =====
 

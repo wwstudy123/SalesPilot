@@ -1,5 +1,7 @@
 package com.nova.sale.interfaces.http;
 
+import com.nova.sale.domain.ForbiddenException;
+import com.nova.sale.domain.NotFoundException;
 import com.nova.sale.interfaces.dto.ErrorResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,6 +25,16 @@ public class ApiExceptionHandler {
                 "INVALID_ARGUMENT",
                 ex.getMessage() == null ? "invalid argument" : ex.getMessage()
         ));
+    }
+
+    @ExceptionHandler(NotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNotFound(NotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse("NOT_FOUND", ex.getMessage()));
+    }
+
+    @ExceptionHandler(ForbiddenException.class)
+    public ResponseEntity<ErrorResponse> handleForbidden(ForbiddenException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ErrorResponse("FORBIDDEN", ex.getMessage()));
     }
 
     @ExceptionHandler(Exception.class)

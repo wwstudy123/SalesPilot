@@ -14,6 +14,6 @@ class HealthControllerTest {
 
         assertThat(response.code()).isEqualTo("OK");
         assertThat(response.data().status()).isEqualTo("ok");
-        assertThat(response.data().service()).isEqualTo("java-platform");
+        assertThat(response.data().service()).isEqualTo("business-mock");
     }
 }

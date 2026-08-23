@@ -7,3 +7,8 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+
+sale:
+  jwt:
+    secret: sale-test-jwt-secret-0123456789-abcdefghijklmnopqrstuvwxyz
+    ttl-hours: 1

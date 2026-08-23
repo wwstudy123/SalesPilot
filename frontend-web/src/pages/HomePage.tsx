@@ -30,8 +30,8 @@ const features = [
   },
   {
     icon: Sparkles,
-    title: '示例实体',
-    description: '以 Project 为示例贯穿三端 CRUD，替换为你的领域实体即可快速起步。',
+    title: '业务数据域',
+    description: '员工/客户/跟进/消费四域 CRUD + JWT 认证 + 客户归属校验，种子数据一键灌入。',
   },
 ]
 
@@ -45,23 +45,23 @@ export function HomePage() {
           <div className='hero-copy'>
             <div className='hero-copy__eyebrow'>
               <Sparkles size={14} />
-              通用 Agent 项目骨架
+              SalesPilot 员工侧销售 Copilot
             </div>
 
             <h1 className='hero-title'>
-              <span>三端一体的</span>
-              <span className='hero-title__accent'>AI 应用脚手架</span>
+              <span>零售销售</span>
+              <span className='hero-title__accent'>智能体系统</span>
             </h1>
 
             <p>
-              React + Spring Boot + Python Runtime 的最小可运行闭环：保留编排、事件流与持久化等横切能力，
-              领域逻辑以 Project 示例贯穿，替换成你的业务即可起步。
+              信息录入 → AI 沉淀画像/标签 → 员工按场景获取建议 → 人工在环采纳 → 行为回流评测的闭环。
+              当前阶段：M1 业务数据域，可登录并浏览种子客户数据。
             </p>
 
             <div className='hero-copy__actions'>
-              <button type='button' className='primary-button hero-copy__button' onClick={() => navigate('/projects')}>
+              <button type='button' className='primary-button hero-copy__button' onClick={() => navigate('/customers')}>
                 <Rocket size={18} />
-                查看示例项目
+                我的客户
                 <ArrowRight size={16} />
               </button>
             </div>
@@ -104,9 +104,9 @@ export function HomePage() {
       <footer className='home-footer'>
         <div className='home-footer__inner'>
           <div className='home-footer__brand'>
-            Agent<span className='hero-title__accent'>Kit</span>
+            Sales<span className='hero-title__accent'>Pilot</span>
           </div>
-          <p>SalesPilot 零售销售智能体系统 · 工程骨架（M0）</p>
+          <p>SalesPilot 零售销售智能体系统 · M1 业务数据域</p>
         </div>
       </footer>
     </div>
