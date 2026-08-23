@@ -10,7 +10,7 @@ __pycache__/
 output/
 
 # Java
-java-platform/target/
+business-mock/target/
 
 # Frontend
 frontend-web/node_modules/
