@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# Python runtime 产物
+output/
+
+# Java
+java-platform/target/
+
+# Frontend
+frontend-web/node_modules/
+frontend-web/dist/
+frontend-web/*.tsbuildinfo
+
+# 环境与密钥
+.env
+config/*.json
+!config/*.example.json
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store

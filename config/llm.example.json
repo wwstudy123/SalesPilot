@@ -1,0 +1,12 @@
+{
+  "provider": "openai",
+  "model": "gpt-4o-mini",
+  "providers": {
+    "openai": {
+      "api_key": "your_api_key",
+      "base_url": "https://api.openai.com/v1"
+    }
+  },
+  "style": "default",
+  "context_window": 128000
+}

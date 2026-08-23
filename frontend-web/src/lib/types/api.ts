@@ -1,0 +1,97 @@
+export type ApiEnvelope<T> = {
+  code: string
+  message: string
+  data: T
+}
+
+export type Project = {
+  projectId: string
+  title: string
+  premise: string
+  style: string | null
+  createdAt: string | null
+  updatedAt: string | null
+}
+
+export type ProjectListResponse = {
+  items: Project[]
+}
+
+export type CreateProjectRequest = {
+  projectId: string
+  title: string
+  premise?: string
+  style?: string
+}
+
+export type AwaitingConfirmation = {
+  pauseAfterSection: number
+  nextSection: number
+  completedCount: number
+  status?: string | null
+}
+
+export type Run = {
+  runId: string
+  projectId: string
+  status: string
+  kernelStatus: string
+  phase: string | null
+  flow: string | null
+  provider: string | null
+  model: string | null
+  currentSection: number | null
+  completedCount: number | null
+  totalWordCount: number | null
+  awaitingConfirmation?: AwaitingConfirmation | null
+}
+
+export type RunListResponse = {
+  items: Run[]
+}
+
+export type RunEventsResponse = {
+  run_id: string
+  after_seq: number
+  limit: number
+  returned_count: number
+  total_available: number
+  next_after_seq: number
+  has_more: boolean
+  items: Array<Record<string, unknown>>
+}
+
+export type RunEventPayload = Record<string, unknown> & {
+  summary?: string
+  delta?: string
+  level?: string
+  event?: string
+  awaiting_confirmation?: AwaitingConfirmation
+}
+
+export type RunEvent = {
+  eventId: string
+  seq: number
+  type: string
+  category: string
+  time: string
+  payload: RunEventPayload
+}
+
+export type RunEventStreamHandler = (event: RunEvent) => void
+
+export type RunAck = {
+  run_id: string
+  status: string
+  kernel_status?: string | null
+  accepted?: boolean | null
+}
+
+export type ResumeRunRequest = {
+  prompt?: string
+}
+
+export type RunInstructionRequest = {
+  kind: string
+  text?: string
+}
