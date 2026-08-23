@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 from fastapi.testclient import TestClient
-
-from sagt_agent.internal_api.app import create_app
+from sale_agent.internal_api.app import create_app
 
 
 def _client(monkeypatch, tmp_path) -> TestClient:
-    monkeypatch.setenv("AGENTKIT_INTERNAL_API_REGISTRY", str(tmp_path / "runs.json"))
+    monkeypatch.setenv("SALE_INTERNAL_API_REGISTRY", str(tmp_path / "runs.json"))
     return TestClient(create_app())
 
 

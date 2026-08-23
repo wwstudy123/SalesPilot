@@ -1,7 +1,7 @@
 import { ApiError } from './client'
 
-const pythonBaseUrl = import.meta.env.VITE_AGENTKIT_INTERNAL_API_BASE_URL ?? 'http://127.0.0.1:8000'
-const pythonToken = import.meta.env.VITE_AGENTKIT_INTERNAL_API_TOKEN ?? ''
+const pythonBaseUrl = import.meta.env.VITE_SALE_INTERNAL_API_BASE_URL ?? 'http://127.0.0.1:8000'
+const pythonToken = import.meta.env.VITE_SALE_INTERNAL_API_TOKEN ?? ''
 
 function buildPythonHeaders(extra?: HeadersInit): HeadersInit {
   const headers: Record<string, string> = {

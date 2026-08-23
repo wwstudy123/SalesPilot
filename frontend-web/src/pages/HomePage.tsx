@@ -106,7 +106,7 @@ export function HomePage() {
           <div className='home-footer__brand'>
             Agent<span className='hero-title__accent'>Kit</span>
           </div>
-          <p>AgentKit Skeleton · 通用三端项目骨架</p>
+          <p>SalesPilot 零售销售智能体系统 · 工程骨架（M0）</p>
         </div>
       </footer>
     </div>

@@ -3,11 +3,11 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "sagt_agent"
+name = "sale_agent"
 version = "0.1.0"
 description = "LangGraph-based agent runtime kernel with Internal API (skeleton)"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
   "langgraph>=0.2.0",
   "fastapi>=0.116.0",
@@ -22,15 +22,15 @@ dev = [
 ]
 
 [tool.setuptools]
-package-dir = {"" = "."}
+package-dir = {"" = "sale-agent"}
 
 [tool.setuptools.packages.find]
-where = ["."]
-include = ["sagt_agent*"]
+where = ["sale-agent"]
+include = ["sale_agent*"]
 
 [tool.ruff]
 line-length = 140
-target-version = "py310"
+target-version = "py311"
 extend-exclude = [".venv", "output"]
 
 [tool.ruff.lint]

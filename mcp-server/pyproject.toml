@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sale-mcp-server"
+version = "0.1.0"
+description = "SalesPilot unified tool layer (MCP): permission gates, circuit breaker, idempotency, cache, audit"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.116.0",
+  "uvicorn>=0.35.0",
+]
+
+[dependency-groups]
+dev = [
+  "pytest>=8.0",
+  "httpx>=0.27",
+  "ruff>=0.6",
+]
+
+[tool.setuptools]
+package-dir = {"" = "."}
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["sale_server*"]
+
+[tool.ruff]
+line-length = 140
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+ignore = ["E501"]

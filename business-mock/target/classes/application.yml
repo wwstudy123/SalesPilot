@@ -3,10 +3,10 @@ server:
 
 spring:
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://127.0.0.1:5432/agentkit?sslmode=disable&TimeZone=Asia/Shanghai}
-    username: ${SPRING_DATASOURCE_USERNAME:agentkit}
-    password: ${SPRING_DATASOURCE_PASSWORD:agentkit}
-    driver-class-name: org.postgresql.Driver
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://127.0.0.1:3306/sale?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}
+    username: ${SPRING_DATASOURCE_USERNAME:sale}
+    password: ${SPRING_DATASOURCE_PASSWORD:sale_pass}
+    driver-class-name: com.mysql.cj.jdbc.Driver
   flyway:
     enabled: false
     locations: classpath:db/migration
@@ -23,5 +23,5 @@ management:
       exposure:
         include: health,info
 
-agentkit:
-  internal-api-base-url: ${AGENTKIT_INTERNAL_API_BASE_URL:http://127.0.0.1:8000}
+sale:
+  internal-api-base-url: ${SALE_INTERNAL_API_BASE_URL:http://127.0.0.1:8000}

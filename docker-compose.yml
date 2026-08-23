@@ -1,20 +1,36 @@
+name: sale-dev
+
 services:
-  postgres:
-    image: postgres:16
-    container_name: agentkit-postgres
+  mysql:
+    image: mysql:8.0
+    container_name: sale-mysql
     environment:
-      POSTGRES_DB: agentkit
-      POSTGRES_USER: agentkit
-      POSTGRES_PASSWORD: agentkit
+      MYSQL_ROOT_PASSWORD: sale_root
+      MYSQL_DATABASE: sale
+      MYSQL_USER: sale
+      MYSQL_PASSWORD: sale_pass
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
     ports:
-      - "5432:5432"
+      - "3306:3306"
     volumes:
-      - agentkit-postgres-data:/var/lib/postgresql/data
+      - sale-mysql-data:/var/lib/mysql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U agentkit -d agentkit"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-usale", "-psale_pass"]
       interval: 5s
-      timeout: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    container_name: sale-redis
+    command: ["redis-server", "--appendonly", "no"]
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
       retries: 20
 
 volumes:
-  agentkit-postgres-data:
+  sale-mysql-data:

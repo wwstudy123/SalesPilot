@@ -3,13 +3,28 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
+  build: {
+    rollupOptions: {
+      input: {
+        admin: 'admin.html',
+        sidebar: 'sidebar.html',
+      },
+    },
+  },
   server: {
     port: 5173,
     proxy: {
+      // sale-agent（AI 交互，SSE）——必须放在 '/api' 之前以优先匹配
+      '/api/ai': {
+        target: 'http://127.0.0.1:8000',
+        changeOrigin: true,
+      },
+      // business-mock（业务 CRUD）
       '/api': {
         target: 'http://127.0.0.1:8080',
         changeOrigin: true,
       },
+      // 遗留 Internal API（sale-agent 现有 run 管理端点，M2 起迁移到 /api/ai）
       '/internal': {
         target: 'http://127.0.0.1:8000',
         changeOrigin: true,

@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from sagt_agent.agents.build import build_coordinator_loop, build_tool_registry
-from sagt_agent.bootstrap.config import Config, ProviderConfig
-from sagt_agent.store.store import Store
+from sale_agent.agents.build import build_coordinator_loop, build_tool_registry
+from sale_agent.bootstrap.config import Config, ProviderConfig
+from sale_agent.store.store import Store
 
 
 def _cfg(output_dir: Path) -> Config:
