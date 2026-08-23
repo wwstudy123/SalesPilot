@@ -29,10 +29,9 @@ CREATE TABLE IF NOT EXISTS customer (
     updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     CONSTRAINT fk_customer_owner FOREIGN KEY (owner_id) REFERENCES employee (id),
     CONSTRAINT ck_customer_gender CHECK (gender IN ('M', 'F', 'U')),
-    CONSTRAINT ck_customer_stage CHECK (lifecycle_stage IN ('new', 'prospective', 'existing', 'churn_risk'))
+    CONSTRAINT ck_customer_stage CHECK (lifecycle_stage IN ('new', 'prospective', 'existing', 'churn_risk')),
+    INDEX idx_customer_owner (owner_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE INDEX idx_customer_owner ON customer (owner_id);
 
 CREATE TABLE IF NOT EXISTS follow_up (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -44,10 +43,9 @@ CREATE TABLE IF NOT EXISTS follow_up (
     created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     CONSTRAINT fk_follow_up_customer FOREIGN KEY (customer_id) REFERENCES customer (id),
     CONSTRAINT fk_follow_up_employee FOREIGN KEY (employee_id) REFERENCES employee (id),
-    CONSTRAINT ck_follow_up_channel CHECK (channel IN ('chat', 'phone', 'visit', 'wechat'))
+    CONSTRAINT ck_follow_up_channel CHECK (channel IN ('chat', 'phone', 'visit', 'wechat')),
+    INDEX idx_follow_up_customer (customer_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE INDEX idx_follow_up_customer ON follow_up (customer_id);
 
 CREATE TABLE IF NOT EXISTS purchase (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -59,7 +57,6 @@ CREATE TABLE IF NOT EXISTS purchase (
     purchased_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     remark VARCHAR(512) NULL,
     created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-    CONSTRAINT fk_purchase_customer FOREIGN KEY (customer_id) REFERENCES customer (id)
+    CONSTRAINT fk_purchase_customer FOREIGN KEY (customer_id) REFERENCES customer (id),
+    INDEX idx_purchase_customer (customer_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE INDEX idx_purchase_customer ON purchase (customer_id);

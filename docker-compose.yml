@@ -2,7 +2,7 @@ name: sale-dev
 
 services:
   mysql:
-    image: mysql:8.0.23
+    image: mysql:8.0
     container_name: sale-mysql
     environment:
       MYSQL_ROOT_PASSWORD: sale_root
