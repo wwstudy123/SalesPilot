@@ -22,6 +22,11 @@ const navItems = [
     isActive: (pathname: string) => pathname.startsWith('/kb'),
   },
   {
+    to: '/admin',
+    label: '管理端',
+    isActive: (pathname: string) => pathname.startsWith('/admin'),
+  },
+  {
     to: '/login',
     label: '登录',
     isActive: (pathname: string) => pathname.startsWith('/login'),

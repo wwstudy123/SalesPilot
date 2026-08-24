@@ -107,4 +107,15 @@ public class CustomerRepository {
                 id
         ) > 0;
     }
+
+    public void transferOwner(Long customerId, Long fromEmployeeId, Long toEmployeeId, Long operatorId) {
+        jdbcTemplate.update(
+                "UPDATE customer SET owner_id = ?, updated_at = ? WHERE id = ? AND owner_id = ? AND deleted_token = '0'",
+                toEmployeeId, Timestamp.from(Instant.now()), customerId, fromEmployeeId
+        );
+        jdbcTemplate.update(
+                "INSERT INTO customer_transfer_audit (customer_id, from_employee_id, to_employee_id, operator_id) VALUES (?, ?, ?, ?)",
+                customerId, fromEmployeeId, toEmployeeId, operatorId
+        );
+    }
 }

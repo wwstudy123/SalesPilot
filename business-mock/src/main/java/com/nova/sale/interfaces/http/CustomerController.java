@@ -9,6 +9,7 @@ import com.nova.sale.infrastructure.security.AuthContext;
 import com.nova.sale.interfaces.dto.ApiResponse;
 import com.nova.sale.interfaces.dto.CustomerRequest;
 import com.nova.sale.interfaces.dto.CustomerResponse;
+import com.nova.sale.interfaces.dto.CustomerTransferRequest;
 import com.nova.sale.interfaces.dto.CustomerTagResponse;
 import com.nova.sale.interfaces.dto.FollowUpResponse;
 import com.nova.sale.interfaces.dto.ProfileFieldResponse;
@@ -70,6 +71,13 @@ public class CustomerController {
     @DeleteMapping("/{customerId}")
     public ApiResponse<CustomerResponse> delete(@PathVariable Long customerId) {
         return ApiResponse.ok(CustomerResponse.from(customerService.softDelete(customerId, AuthContext.current())));
+    }
+
+    @PutMapping("/{customerId}/transfer")
+    public ApiResponse<CustomerResponse> transfer(
+            @PathVariable Long customerId, @Valid @RequestBody CustomerTransferRequest request) {
+        return ApiResponse.ok(CustomerResponse.from(
+                customerService.transfer(customerId, request.toEmployeeId(), AuthContext.current())));
     }
 
     @GetMapping("/{customerId}/follow-ups")

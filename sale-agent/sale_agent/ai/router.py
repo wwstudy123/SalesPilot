@@ -277,6 +277,29 @@ async def list_suggestions(request: Request, customer_id: int | None = None, sta
     return {"code": "OK", "message": "success", "data": store.list(customer_id, status)}
 
 
+@router.get("/admin/sessions")
+async def admin_sessions(request: Request, authorization: str | None = Header(default=None)) -> dict:
+    payload = _jwt_payload((authorization or "").removeprefix("Bearer ").strip())
+    if payload.get("role") != "manager":
+        raise HTTPException(status_code=403, detail="仅管理员可查看会话监控")
+    suggestions = request.app.state.suggestion_store.list()
+    sessions: dict[str, dict] = {}
+    for item in suggestions:
+        session = sessions.setdefault(
+            item["session_id"],
+            {
+                "session_id": item["session_id"],
+                "employee_id": item["employee_id"],
+                "customer_id": item["customer_id"],
+                "latest_at": item["created_at"],
+                "turns": [],
+            },
+        )
+        session["turns"].append(item)
+        session["latest_at"] = max(session["latest_at"], item["created_at"])
+    return {"code": "OK", "message": "success", "data": sorted(sessions.values(), key=lambda item: item["latest_at"], reverse=True)}
+
+
 @router.get("/suggestions/{suggestion_id}/actions")
 async def suggestion_actions(request: Request, suggestion_id: int) -> dict:
     store = request.app.state.suggestion_store

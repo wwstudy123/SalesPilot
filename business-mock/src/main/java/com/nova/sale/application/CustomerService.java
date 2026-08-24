@@ -4,6 +4,7 @@ import com.nova.sale.domain.ForbiddenException;
 import com.nova.sale.domain.NotFoundException;
 import com.nova.sale.domain.model.Customer;
 import com.nova.sale.infrastructure.repository.CustomerRepository;
+import com.nova.sale.infrastructure.repository.EmployeeRepository;
 import com.nova.sale.infrastructure.security.AuthContext;
 import com.nova.sale.interfaces.dto.CustomerRequest;
 import org.springframework.stereotype.Service;
@@ -17,9 +18,11 @@ import java.util.List;
 @Service
 public class CustomerService {
     private final CustomerRepository customerRepository;
+    private final EmployeeRepository employeeRepository;
 
-    public CustomerService(CustomerRepository customerRepository) {
+    public CustomerService(CustomerRepository customerRepository, EmployeeRepository employeeRepository) {
         this.customerRepository = customerRepository;
+        this.employeeRepository = employeeRepository;
     }
 
     public List<Customer> list(AuthContext current) {
@@ -62,6 +65,22 @@ public class CustomerService {
         Customer customer = requireOwned(id, current);
         customerRepository.softDelete(id);
         return customer;
+    }
+
+    /** 管理员移交客户：归属随客户保留，变更写入审计表。 */
+    public Customer transfer(Long customerId, Long toEmployeeId, AuthContext current) {
+        if (!current.isManager()) {
+            throw new ForbiddenException("仅管理员可以移交客户");
+        }
+        Customer customer = customerRepository.findById(customerId)
+                .orElseThrow(() -> new NotFoundException("customer not found: " + customerId));
+        employeeRepository.findById(toEmployeeId)
+                .orElseThrow(() -> new NotFoundException("employee not found: " + toEmployeeId));
+        if (customer.ownerId().equals(toEmployeeId)) {
+            return customer;
+        }
+        customerRepository.transferOwner(customerId, customer.ownerId(), toEmployeeId, current.employeeId());
+        return customerRepository.findById(customerId).orElseThrow();
     }
 
     /** 归属校验统一出口：不存在 404，越权 403。 */

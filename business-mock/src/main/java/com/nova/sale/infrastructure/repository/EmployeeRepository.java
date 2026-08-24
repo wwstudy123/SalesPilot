@@ -53,4 +53,11 @@ public class EmployeeRepository {
                 ROW_MAPPER
         );
     }
+
+    public void updateRole(Long employeeId, String role) {
+        jdbcTemplate.update(
+                "UPDATE employee SET role = ?, updated_at = CURRENT_TIMESTAMP(3) WHERE id = ? AND deleted_token = '0'",
+                role, employeeId
+        );
+    }
 }

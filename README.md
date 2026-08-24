@@ -1,7 +1,7 @@
 # SalesPilot 零售销售智能体系统
 
 > 依据冻结文档：《SalesPilot-需求文档 v1.2》《SalesPilot-技术架构设计 v1.2》《SalesPilot-MVP方案与任务拆解 v1.2》
-> 当前阶段：**M6 标签能力** —— 受保护的 `save_tags`、Ops 标签提案、标签确认/修正和客户标签筛选。
+> 当前阶段：**M7 Admin MVP** —— 管理端员工角色切换、客户移交审计、全量客户与会话采纳监控。
 
 ## 架构总览
 
@@ -105,6 +105,12 @@ AI 侧环境变量（可选）：`SALE_LLM_API_KEY` / `SALE_LLM_BASE_URL` / `SAL
 - [x] Ops 子图根据画像与近期跟进生成带依据、置信度的标签提案；确认画像后自动触发复核。
 - [x] 客户详情展示标签建议卡，支持确认、修正或放弃；客户列表按已生效标签筛选。
 
-## 下一步（M7）
+## M7 验收清单
 
-按 MVP 文档推进 admin MVP；M8 再补 Trace 回放面板，M10 提供包含 Milvus 的 full compose。
+- [x] 管理端可查看员工与全量客户；可切换角色、移交客户并记录移交审计事件。
+- [x] 会话监控展示员工、客户、建议技能、引用数量和采纳状态。
+- [x] 会话条目保留 `session_id`，供 M8 Monitor 按会话关联 Run。
+
+## 下一步（M8）
+
+实现 Run 列表与 Span 时间线；M10 再提供包含 Milvus 的 full compose。

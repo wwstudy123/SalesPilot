@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom'
 import { AppShell } from '../components/layout/AppShell'
 import { ChatPage } from '../pages/ChatPage'
+import { AdminPage } from '../pages/AdminPage'
 import { CustomerDetailPage } from '../pages/CustomerDetailPage'
 import { CustomersPage } from '../pages/CustomersPage'
 import { HomePage } from '../pages/HomePage'
@@ -18,6 +19,7 @@ const router = createBrowserRouter([
       { path: 'customers/:customerId', element: <CustomerDetailPage /> },
       { path: 'chat', element: <ChatPage /> },
       { path: 'kb', element: <KbSearchPage /> },
+      { path: 'admin', element: <AdminPage /> },
       { path: '*', element: <Navigate to='/' replace /> },
     ],
   },
