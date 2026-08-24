@@ -1,4 +1,4 @@
-name: salespilot
+name: sales-pilot
 
 services:
   mysql:
