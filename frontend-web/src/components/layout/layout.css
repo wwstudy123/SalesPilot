@@ -1,146 +1,149 @@
-.app-shell {
-  min-height: 100vh;
-}
+/* ---------- Copilot 工作台布局：左侧边栏 + 内容区 ---------- */
 
-.app-shell--console {
-  height: 100vh;
-  overflow: hidden;
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+  background: var(--bg-subtle);
 }
 
 .app-shell__main {
-  width: min(1280px, calc(100% - 64px));
-  margin: 0 auto;
-  padding: 28px 0 48px;
+  flex: 1;
+  min-width: 0;
+  padding: 28px 32px 48px;
+  overflow-x: hidden;
 }
 
-.app-shell--console .app-shell__main {
-  width: 100%;
-  max-width: none;
-  height: calc(100vh - 64px);
-  padding-top: 0;
-  padding-bottom: 0;
-  overflow: hidden;
-  overscroll-behavior: none;
-}
+/* ---------- 侧边栏 ---------- */
 
-.app-header {
+.sidebar {
   position: sticky;
   top: 0;
-  z-index: 10;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  height: 64px;
-  padding: 0 24px;
-  background: rgba(255, 248, 240, 0.86);
-  backdrop-filter: blur(24px);
-  border-bottom: 1px solid rgba(255, 235, 210, 0.34);
+  flex-direction: column;
+  width: var(--sidebar-width);
+  height: 100vh;
+  padding: 16px 12px;
+  background: #ffffff;
+  border-right: 1px solid var(--border-soft);
 }
 
-.brand {
-  display: inline-flex;
+.sidebar__brand {
+  display: flex;
   align-items: center;
   gap: 10px;
+  padding: 6px 8px 18px;
   border: none;
   background: transparent;
   cursor: pointer;
-  color: var(--text-strong);
   font: inherit;
-  padding: 0;
 }
 
-.brand__logo {
-  width: 36px;
-  height: 36px;
+.sidebar__logo {
+  width: 30px;
+  height: 30px;
   display: grid;
   place-items: center;
-  border-radius: 12px;
-  color: white;
-  font-size: 18px;
-  background: linear-gradient(135deg, #f29c43, #df7420 55%, #ebb145);
-  box-shadow: 0 10px 20px rgba(223, 116, 32, 0.18);
+  border-radius: 8px;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-size: 15px;
+  font-weight: 700;
 }
 
-.brand__text {
-  font-family: var(--font-display);
-  font-size: 24px;
+.sidebar__brand-text {
+  font-size: 16px;
   font-weight: 600;
+  color: var(--text-strong);
   letter-spacing: -0.01em;
 }
 
-.brand__text-accent {
-  background: linear-gradient(135deg, #df7420, #ebb145 55%, #e18252);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+.sidebar__brand-accent {
+  color: var(--gray-400);
+  font-weight: 500;
 }
 
-.app-header__nav {
+.sidebar__nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.sidebar__group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sidebar__group-label {
+  margin: 16px 10px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--gray-400);
+}
+
+.sidebar__item {
   display: flex;
   align-items: center;
-  gap: 4px;
-}
-
-.app-header__link {
-  position: relative;
-  padding: 10px 16px;
-  color: #857162;
-  text-decoration: none;
+  gap: 10px;
+  padding: 8px 10px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--gray-600);
   font-size: 14px;
   font-weight: 500;
-  border: none;
-  outline: none;
-  background: transparent;
-  box-shadow: none;
-  appearance: none;
-  -webkit-appearance: none;
-  border-radius: 12px;
-  transition: color 0.2s ease, background 0.2s ease;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
 }
 
-.app-header__link:hover {
+.sidebar__item:hover {
+  background: var(--gray-100);
   color: var(--text-strong);
-  background: rgba(255, 255, 255, 0.35);
 }
 
-.app-header__link.is-active {
-  color: var(--brand-600);
+.sidebar__item.is-active {
+  background: var(--accent-subtle);
+  color: var(--text-strong);
+  font-weight: 600;
+  box-shadow: inset 0 0 0 1px var(--border-soft);
 }
 
-.app-header__link.is-active::after {
-  content: '';
-  position: absolute;
-  left: 8px;
-  right: 8px;
-  bottom: 2px;
-  height: 2px;
-  border-radius: 999px;
-  background: linear-gradient(135deg, #f29c43, #df7420);
+.sidebar__footer {
+  border-top: 1px solid var(--border-soft);
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
-.app-header__cta {
-  min-height: 42px;
-  padding: 10px 16px;
-  border-radius: 14px;
-  font-size: 14px;
-}
+/* ---------- 响应式：窄屏收起为图标栏 ---------- */
 
-@media (max-width: 960px) {
-  .app-header {
-    flex-wrap: wrap;
-    justify-content: center;
+@media (max-width: 860px) {
+  .sidebar {
+    width: 60px;
+    padding: 12px 8px;
   }
 
-  .app-header__nav {
-    width: 100%;
+  .sidebar__brand {
     justify-content: center;
-    gap: 20px;
-    flex-wrap: wrap;
+    padding: 4px 0 14px;
   }
 
-  .app-shell__main,
-  .app-shell--console .app-shell__main {
-    width: calc(100% - 24px);
+  .sidebar__brand-text,
+  .sidebar__group-label,
+  .sidebar__item span {
+    display: none;
+  }
+
+  .sidebar__item {
+    justify-content: center;
+    padding: 10px;
+  }
+
+  .app-shell__main {
+    padding: 20px 16px 40px;
   }
 }

@@ -1,114 +1,137 @@
-import { ArrowRight, Blocks, BookOpen, Layers, Rocket, Sparkles, Workflow } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
+import { Link, useNavigate } from 'react-router-dom'
+import { ArrowRight, BookOpen, MessageSquare, UserRound } from 'lucide-react'
+import { fetchCustomers, fetchCustomerTags } from '../lib/api/customers'
+import type { Customer, CustomerTag } from '../lib/types/api'
 import './pages.css'
 
-const features = [
-  {
-    icon: Workflow,
-    title: 'LangGraph 流水线',
-    description: '内置 load → generate → commit → checkpoint 最小流水线，可平滑扩展为复杂 Agent 编排。',
-  },
-  {
-    icon: Blocks,
-    title: '三端分层',
-    description: 'React 前端、Spring Boot 平台层与 Python Runtime 通过代理分流，职责清晰。',
-  },
-  {
-    icon: Layers,
-    title: 'DDD 结构',
-    description: 'Java 层 interfaces/application/domain/infrastructure 四层 + Flyway 迁移开箱即用。',
-  },
-  {
-    icon: BookOpen,
-    title: '文件持久化',
-    description: 'Run 产物按 sections/summaries/meta 目录组织，支持 checkpoint 与断点续跑。',
-  },
-  {
-    icon: Rocket,
-    title: 'SSE 事件流',
-    description: 'Internal API 提供 SSE 事件订阅与进度快照，前端可实时展示运行状态。',
-  },
-  {
-    icon: Sparkles,
-    title: '业务数据域',
-    description: '员工/客户/跟进/消费四域 CRUD + JWT 认证 + 客户归属校验，种子数据一键灌入。',
-  },
-]
+const STAGE_LABELS: Record<string, string> = {
+  new: '新客',
+  prospective: '意向',
+  existing: '老客',
+  churn_risk: '流失风险',
+}
 
+/** 工作台 Dashboard：客户概览 + 重点关注 + 快捷入口。 */
 export function HomePage() {
   const navigate = useNavigate()
+  const customersQuery = useQuery({
+    queryKey: ['customers-with-tags'],
+    queryFn: async () => {
+      const customers = await fetchCustomers()
+      return Promise.all(
+        customers.map(async (customer) => ({ customer, tags: await fetchCustomerTags(customer.id) })),
+      )
+    },
+  })
+
+  const rows = customersQuery.data ?? []
+  const total = rows.length
+  const stageCounts = rows.reduce<Record<string, number>>((acc, { customer }) => {
+    acc[customer.lifecycleStage] = (acc[customer.lifecycleStage] ?? 0) + 1
+    return acc
+  }, {})
+  // 重点关注：流失风险 > 意向 > 新客（老客排后）
+  const focusOrder: Record<string, number> = { churn_risk: 0, prospective: 1, new: 2, existing: 3 }
+  const focus = [...rows]
+    .sort((a, b) => (focusOrder[a.customer.lifecycleStage] ?? 9) - (focusOrder[b.customer.lifecycleStage] ?? 9))
+    .slice(0, 6)
 
   return (
-    <div className='home-page'>
-      <section className='home-hero'>
-        <div className='home-section__inner home-page__content'>
-          <div className='hero-copy'>
-            <div className='hero-copy__eyebrow'>
-              <Sparkles size={14} />
-              SalesPilot 员工侧销售 Copilot
-            </div>
+    <div className='dashboard'>
+      <header className='dashboard__header'>
+        <h1>工作台</h1>
+        <p>今日重点客户与快捷操作，一屏掌握。</p>
+      </header>
 
-            <h1 className='hero-title'>
-              <span>零售销售</span>
-              <span className='hero-title__accent'>智能体系统</span>
-            </h1>
+      <section className='dashboard__stats'>
+        <div className='stat-card panel'>
+          <span className='stat-card__label'>客户总数</span>
+          <strong className='stat-card__value'>{customersQuery.isLoading ? '—' : total}</strong>
+        </div>
+        {Object.entries(STAGE_LABELS).map(([stage, label]) => (
+          <div key={stage} className='stat-card panel'>
+            <span className='stat-card__label'>{label}</span>
+            <strong className='stat-card__value'>{stageCounts[stage] ?? 0}</strong>
+          </div>
+        ))}
+      </section>
 
-            <p>
-              信息录入 → AI 沉淀画像/标签 → 员工按场景获取建议 → 人工在环采纳 → 行为回流评测的闭环。
-              当前阶段：M1 业务数据域，可登录并浏览种子客户数据。
+      <div className='dashboard__grid'>
+        <section className='focus panel'>
+          <div className='focus__head'>
+            <h2>重点关注</h2>
+            <Link to='/customers' className='focus__more'>
+              全部客户 <ArrowRight size={14} />
+            </Link>
+          </div>
+          {customersQuery.isLoading ? <p className='dashboard__empty'>加载中…</p> : null}
+          {customersQuery.isError ? (
+            <p className='dashboard__empty'>加载失败：{(customersQuery.error as Error).message}</p>
+          ) : null}
+          {!customersQuery.isLoading && total === 0 ? (
+            <p className='dashboard__empty'>
+              暂无客户数据，请先 <code>make seed</code> 灌入种子并重新登录。
             </p>
+          ) : null}
+          <ul className='focus__list'>
+            {focus.map(({ customer, tags }: { customer: Customer; tags: CustomerTag[] }) => (
+              <li key={customer.id}>
+                <button
+                  type='button'
+                  className='focus__item'
+                  onClick={() => navigate(`/customers/${customer.id}`)}
+                >
+                  <span className='focus__avatar'>{customer.name.slice(0, 1)}</span>
+                  <span className='focus__info'>
+                    <strong>{customer.name}</strong>
+                    <span className='focus__meta'>
+                      {STAGE_LABELS[customer.lifecycleStage] ?? customer.lifecycleStage}
+                      {tags.length > 0 ? ` · ${tags.map((tag) => tag.tagName).join(' / ')}` : ''}
+                    </span>
+                  </span>
+                  <ArrowRight size={15} className='focus__arrow' />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
 
-            <div className='hero-copy__actions'>
-              <button type='button' className='primary-button hero-copy__button' onClick={() => navigate('/customers')}>
-                <Rocket size={18} />
-                我的客户
-                <ArrowRight size={16} />
-              </button>
-            </div>
-
-            <div className='hero-copy__highlights'>
-              <span>最小闭环</span>
-              <span>可编译可启动可测试</span>
-              <span>中性命名</span>
-            </div>
+        <section className='shortcuts panel'>
+          <div className='shortcuts__head'>
+            <h2>快捷操作</h2>
           </div>
-        </div>
-      </section>
-
-      <section className='home-features'>
-        <div className='home-section__inner'>
-          <div className='home-section__heading'>
-            <h2 className='home-section__title'>
-              骨架里<span className='hero-title__accent'>有什么</span>
-            </h2>
-            <p>横切能力保留，领域逻辑最小化，按需生长</p>
+          <div className='shortcuts__grid'>
+            <button type='button' className='shortcut' onClick={() => navigate('/chat')}>
+              <span className='shortcut__icon'>
+                <MessageSquare size={20} />
+              </span>
+              <span className='shortcut__text'>
+                <strong>写回访话术</strong>
+                <span>AI 助手按客户画像生成建议</span>
+              </span>
+            </button>
+            <button type='button' className='shortcut' onClick={() => navigate('/chat')}>
+              <span className='shortcut__icon'>
+                <UserRound size={20} />
+              </span>
+              <span className='shortcut__text'>
+                <strong>异议处理</strong>
+                <span>客户说贵了 / 再考虑时求助</span>
+              </span>
+            </button>
+            <button type='button' className='shortcut' onClick={() => navigate('/kb')}>
+              <span className='shortcut__icon'>
+                <BookOpen size={20} />
+              </span>
+              <span className='shortcut__text'>
+                <strong>知识库检索</strong>
+                <span>验证话术/产品知识命中</span>
+              </span>
+            </button>
           </div>
-
-          <div className='features-grid'>
-            {features.map((feature) => {
-              const Icon = feature.icon
-              return (
-                <article key={feature.title} className='feature-card panel'>
-                  <div className='feature-card__icon'>
-                    <Icon size={24} />
-                  </div>
-                  <h3>{feature.title}</h3>
-                  <p>{feature.description}</p>
-                </article>
-              )
-            })}
-          </div>
-        </div>
-      </section>
-
-      <footer className='home-footer'>
-        <div className='home-footer__inner'>
-          <div className='home-footer__brand'>
-            Sales<span className='hero-title__accent'>Pilot</span>
-          </div>
-          <p>SalesPilot 零售销售智能体系统 · M1 业务数据域</p>
-        </div>
-      </footer>
+        </section>
+      </div>
     </div>
   )
 }

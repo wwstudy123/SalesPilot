@@ -78,7 +78,7 @@ export function KbSearchPage() {
   return (
     <div className='kb-page'>
       <section className='kb-page__header'>
-        <h2>知识库检索测试</h2>
+        <h1>知识库检索测试</h1>
         <p>M5 入库管线：上传 → 切片 → 向量化 → 原子切换 ready；RAG 命中可视化（角标 / 分数 / 限定语）。</p>
       </section>
 

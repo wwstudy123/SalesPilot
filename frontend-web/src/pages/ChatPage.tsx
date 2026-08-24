@@ -112,7 +112,7 @@ export function ChatPage() {
   return (
     <div className='chat-page'>
       <section className='chat-page__header'>
-        <h2>AI 话术助手</h2>
+        <h1>AI 话术助手</h1>
         <select value={customerId} onChange={(event) => setCustomerId(event.target.value)}>
           <option value=''>不指定客户（通用建议）</option>
           {customers.map((customer) => (
