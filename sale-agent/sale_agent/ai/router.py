@@ -58,6 +58,14 @@ class SuggestionRegenerateRequest(BaseModel):
     requirement: str = Field(min_length=1, description="重新生成要求（必填，≤2 次）")
 
 
+class TagProposalEditRequest(BaseModel):
+    tags: list[dict] = Field(min_length=1, description="修正后的标签建议")
+
+
+class TagReviewRequest(BaseModel):
+    customer_id: int
+
+
 def _jwt_payload(jwt: str) -> dict:
     """解析 JWT payload 取 eid（签名由 mcp-server 闸门校验，此处仅提取身份）。"""
     try:
@@ -110,24 +118,26 @@ async def chat(request: Request, body: ChatRequest, authorization: str | None = 
                     "reason": final.get("routing_reason"),
                 }
             )
-            coach_result = final.get("coach_result") or {}
-            for call in coach_result.get("tool_calls", []):
+            agent_result = final.get("coach_result") or final.get("ops_result") or {}
+            for call in agent_result.get("tool_calls", []):
                 yield _sse({"type": "tool_call", **call})
-            if coach_result.get("citations"):
-                yield _sse({"type": "rag_citation", "citations": coach_result["citations"]})
+            if agent_result.get("citations"):
+                yield _sse({"type": "rag_citation", "citations": agent_result["citations"]})
             reply = final.get("reply", "")
             for chunk in _chunk_text(reply):
                 yield _sse({"type": "token", "content": chunk})
-            if coach_result.get("suggestion_id"):
+            if agent_result.get("suggestion_id"):
                 yield _sse(
                     {
                         "type": "proposal",
-                        "suggestion_id": coach_result["suggestion_id"],
-                        "skill": coach_result.get("skill", {}).get("id"),
-                        "warnings": coach_result.get("warnings", []),
-                        "citations": coach_result.get("citations", []),
+                        "suggestion_id": agent_result["suggestion_id"],
+                        "skill": agent_result.get("skill", {}).get("id"),
+                        "warnings": agent_result.get("warnings", []),
+                        "citations": agent_result.get("citations", []),
                     }
                 )
+            elif agent_result.get("proposal"):
+                yield _sse({"type": "proposal", "proposal_id": agent_result["proposal"]["id"], "tool": "save_tags"})
             status = "failed" if final.get("error") else "completed"
             trace.finish_run(
                 run_id,
@@ -394,6 +404,14 @@ async def confirm_proposal(request: Request, proposal_id: str, authorization: st
     if not jwt:
         raise HTTPException(status_code=401, detail="需要员工 JWT")
     result = confirm(request.app.state.proposal_store, request.app.state.mcp_client, proposal_id, jwt)
+    if result["proposal"]["tool"] == "update_profile_field":
+        # 画像确认后联动复核标签；仍产出独立 save_tags 提案，绝不静默写入。
+        request.app.state.ops_subgraph.review(
+            result["proposal"]["customer_id"],
+            result["proposal"]["employee_id"],
+            jwt,
+            source=f"profile_proposal:{proposal_id}",
+        )
     return {"code": "OK", "message": "success", "data": result}
 
 
@@ -402,6 +420,32 @@ async def reject_proposal(request: Request, proposal_id: str) -> dict:
     from sale_agent.hitl.flow import reject_proposal as reject
 
     result = reject(request.app.state.proposal_store, proposal_id)
+    return {"code": "OK", "message": "success", "data": result}
+
+
+@router.post("/proposals/{proposal_id}/tags")
+async def edit_tag_proposal(request: Request, proposal_id: str, body: TagProposalEditRequest) -> dict:
+    proposal = request.app.state.proposal_store.get(proposal_id)
+    if proposal is None:
+        raise HTTPException(status_code=404, detail=f"proposal not found: {proposal_id}")
+    if proposal["tool"] != "save_tags":
+        raise HTTPException(status_code=422, detail="仅标签提案支持修正")
+    required = {"tagKey", "evidence", "confidence"}
+    if any(not required.issubset(item) for item in body.tags):
+        raise HTTPException(status_code=422, detail="标签需包含 tagKey、evidence、confidence")
+    updated = request.app.state.proposal_store.replace_fields(proposal_id, body.tags)
+    if updated is None:
+        raise HTTPException(status_code=409, detail="提案已处理，不可修正")
+    return {"code": "OK", "message": "success", "data": updated}
+
+
+@router.post("/tags/review")
+async def review_tags(request: Request, body: TagReviewRequest, authorization: str | None = Header(default=None)) -> dict:
+    jwt = (authorization or "").removeprefix("Bearer ").strip()
+    employee_id = _jwt_payload(jwt).get("eid")
+    if not jwt or not employee_id:
+        raise HTTPException(status_code=401, detail="需要员工 JWT")
+    result = request.app.state.ops_subgraph.review(body.customer_id, int(employee_id), jwt, source="manual")
     return {"code": "OK", "message": "success", "data": result}
 
 

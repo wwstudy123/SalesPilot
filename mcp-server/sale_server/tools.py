@@ -49,6 +49,12 @@ TOOL_SPECS: dict[str, dict] = {
         "description": "画像字段更新（write：必须携 approval_token + idempotency_key）",
         "args": {"customer_id": "int(必填)", "fields": "[{fieldKey,fieldValue,evidence}](必填)"},
     },
+    "save_tags": {
+        "readonly": False,
+        "timeout_ms": 2000,
+        "description": "保存客户标签（write：必须携带 approval_token + idempotency_key）",
+        "args": {"customer_id": "int(必填)", "tags": "[{tagKey,evidence,confidence}](必填)"},
+    },
 }
 
 # 只读缓存 TTL（架构 §4：profile 10min、list 60s；演示期内存实现，事件失效留 M5）
@@ -210,6 +216,16 @@ class ToolGateway:
                 jwt_token,
             )
             data = {"customer_id": customer_id, "fields": result}
+        elif name == "save_tags":
+            tags = args.get("tags")
+            if not tags:
+                raise ToolError("E_INVALID_ARGUMENT", 400, "tags 不能为空")
+            result = self._put(
+                f"/api/v1/customers/{customer_id}/tags",
+                {"approvalToken": approval_token, "tags": tags},
+                jwt_token,
+            )
+            data = {"customer_id": customer_id, "tags": result}
         else:
             raise ToolError("E_TOOL_NOT_FOUND", 404, f"write 工具未实现: {name}")
         self._idempotency[idempotency_key] = data

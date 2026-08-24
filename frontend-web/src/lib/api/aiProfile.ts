@@ -32,6 +32,17 @@ export async function rejectProposal(proposalId: string) {
   return aiFetch<{ proposal: Proposal }>(`/api/ai/proposals/${proposalId}/reject`, { method: 'POST' })
 }
 
+export async function editTagProposal(proposalId: string, tags: Array<{ tagKey: string; evidence: string; confidence: number }>) {
+  return aiFetch<Proposal>(`/api/ai/proposals/${proposalId}/tags`, {
+    method: 'POST',
+    body: JSON.stringify({ tags }),
+  })
+}
+
+export async function reviewTags(customerId: number) {
+  return aiFetch('/api/ai/tags/review', { method: 'POST', body: JSON.stringify({ customer_id: customerId }) })
+}
+
 export async function refreshProfile(customerId: number, employeeId: number) {
   return aiFetch<ProfileRefreshResult>('/api/ai/profile/refresh', {
     method: 'POST',

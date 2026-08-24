@@ -8,7 +8,7 @@ import {
   refreshProfile,
   rejectProposal,
 } from '../../lib/api/aiProfile'
-import type { ProfileRefreshResult } from '../../lib/types/api'
+import type { ProfileRefreshResult, ProposalField, TagProposalField } from '../../lib/types/api'
 import { formatDate } from '../../lib/utils/format'
 
 /** AI 画像面板：画像卡 + HITL 确认面板 + 新客首访采集清单（M4）。 */
@@ -73,7 +73,7 @@ export function ProfilePanel({ customerId }: { customerId: number }) {
     onError: (error: Error) => setNotice(`操作失败：${error.message}`),
   })
 
-  const pending = proposalsQuery.data ?? []
+  const pending = (proposalsQuery.data ?? []).filter((proposal) => proposal.tool === 'update_profile_field')
   const fields = profileQuery.data ?? []
   const busy = refreshMutation.isPending || confirmMutation.isPending || rejectMutation.isPending
 
@@ -101,7 +101,7 @@ export function ProfilePanel({ customerId }: { customerId: number }) {
             </span>
           </div>
           <ul className='profile-proposal__fields'>
-            {proposal.fields.map((field) => (
+            {proposal.fields.filter(isProfileField).map((field) => (
               <li key={field.fieldKey}>
                 <span className='profile-field__key'>{FIELD_KEY_LABELS[field.fieldKey] ?? field.fieldKey}</span>
                 <p className='profile-field__value'>
@@ -166,4 +166,8 @@ export function ProfilePanel({ customerId }: { customerId: number }) {
       </ul>
     </section>
   )
+}
+
+function isProfileField(field: ProposalField | TagProposalField): field is ProposalField {
+  return 'fieldKey' in field
 }

@@ -36,6 +36,7 @@ class ChatState(TypedDict, total=False):
     echo: bool
     error: str
     coach_result: dict
+    ops_result: dict
 
 
 class ChatGraph:
@@ -48,12 +49,14 @@ class ChatGraph:
         trace: TraceStore,
         intent_router: IntentRouter | None = None,
         coach=None,
+        ops=None,
     ) -> None:
         self.gateway = gateway
         self.context_store = context_store
         self.trace = trace
         self.intent_router = intent_router
         self.coach = coach  # M5：Coach 子图（talk_script/objection_help 分派）
+        self.ops = ops  # M6：Ops 子图（tag_review 分派）
         self._graph = self._build()
 
     def _build(self):
@@ -106,6 +109,8 @@ class ChatGraph:
         # M5：coaching 类意图分派 Coach 子图（事实区 + 话术区 + 建议卡）
         if state.get("intent") in ("talk_script", "objection_help") and self.coach is not None:
             return self._respond_coach(state)
+        if state.get("intent") == "tag_review" and self.ops is not None:
+            return self._respond_ops(state)
         span = self.trace.start_span(state["run_id"], "respond")
         messages = [{"role": "system", "content": SYSTEM_PROMPT}]
         messages.extend(state.get("history", []))
@@ -158,6 +163,24 @@ class ChatGraph:
         except Exception as exc:  # noqa: BLE001
             self.trace.finish_span(span, "error", {"error": str(exc)})
             return {"reply": f"抱歉，话术生成暂时不可用：{exc}", "model": "none", "echo": False, "error": str(exc)}
+
+    def _respond_ops(self, state: ChatState) -> dict:
+        if not state.get("customer_id") or not state.get("jwt"):
+            return {
+                "reply": "请先选择客户并登录后再生成标签建议。",
+                "model": "ops",
+                "echo": self.gateway.settings.echo_mode,
+            }
+        span = self.trace.start_span(state["run_id"], "ops_tag_review")
+        try:
+            employee_id = int(state.get("user_id") or 0)
+            result = self.ops.review(state["customer_id"], employee_id, state["jwt"], source="chat")
+            self.trace.finish_span(span, "ok", {"outcome": result["outcome"]})
+            reply = "已生成标签建议，请确认后生效。" if result["outcome"] == "proposal" else "未发现需要更新的标签。"
+            return {"reply": reply, "model": "ops", "echo": self.gateway.settings.echo_mode, "ops_result": result}
+        except Exception as exc:  # noqa: BLE001
+            self.trace.finish_span(span, "error", {"error": str(exc)})
+            return {"reply": f"抱歉，标签分析暂时不可用：{exc}", "model": "none", "echo": False, "error": str(exc)}
 
     def _save_context(self, state: ChatState) -> dict:
         span = self.trace.start_span(state["run_id"], "save_context")

@@ -4,14 +4,17 @@ import com.nova.sale.application.CustomerService;
 import com.nova.sale.application.FollowUpService;
 import com.nova.sale.application.ProfileService;
 import com.nova.sale.application.PurchaseService;
+import com.nova.sale.application.TagService;
 import com.nova.sale.infrastructure.security.AuthContext;
 import com.nova.sale.interfaces.dto.ApiResponse;
 import com.nova.sale.interfaces.dto.CustomerRequest;
 import com.nova.sale.interfaces.dto.CustomerResponse;
+import com.nova.sale.interfaces.dto.CustomerTagResponse;
 import com.nova.sale.interfaces.dto.FollowUpResponse;
 import com.nova.sale.interfaces.dto.ProfileFieldResponse;
 import com.nova.sale.interfaces.dto.ProfileUpdateRequest;
 import com.nova.sale.interfaces.dto.PurchaseResponse;
+import com.nova.sale.interfaces.dto.TagUpdateRequest;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -31,13 +34,15 @@ public class CustomerController {
     private final FollowUpService followUpService;
     private final PurchaseService purchaseService;
     private final ProfileService profileService;
+    private final TagService tagService;
 
     public CustomerController(CustomerService customerService, FollowUpService followUpService,
-                              PurchaseService purchaseService, ProfileService profileService) {
+                              PurchaseService purchaseService, ProfileService profileService, TagService tagService) {
         this.customerService = customerService;
         this.followUpService = followUpService;
         this.purchaseService = purchaseService;
         this.profileService = profileService;
+        this.tagService = tagService;
     }
 
     @GetMapping
@@ -95,5 +100,21 @@ public class CustomerController {
         return ApiResponse.ok(profileService.applyUpdates(customerId, updates,
                 request.approvalToken(), AuthContext.current()).stream()
                 .map(ProfileFieldResponse::from).toList());
+    }
+
+    @GetMapping("/{customerId}/tags")
+    public ApiResponse<List<CustomerTagResponse>> tags(@PathVariable Long customerId) {
+        return ApiResponse.ok(tagService.getTags(customerId, AuthContext.current()).stream()
+                .map(CustomerTagResponse::from).toList());
+    }
+
+    @PutMapping("/{customerId}/tags")
+    public ApiResponse<List<CustomerTagResponse>> updateTags(
+            @PathVariable Long customerId, @Valid @RequestBody TagUpdateRequest request) {
+        List<TagService.TagUpdate> updates = request.tags().stream()
+                .map(item -> new TagService.TagUpdate(item.tagKey(), item.evidence(), item.confidence()))
+                .toList();
+        return ApiResponse.ok(tagService.saveTags(customerId, updates, request.approvalToken(), AuthContext.current()).stream()
+                .map(CustomerTagResponse::from).toList());
     }
 }

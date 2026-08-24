@@ -1,7 +1,7 @@
 # SalesPilot 零售销售智能体系统
 
 > 依据冻结文档：《SalesPilot-需求文档 v1.2》《SalesPilot-技术架构设计 v1.2》《SalesPilot-MVP方案与任务拆解 v1.2》
-> 当前阶段：**M5 话术 Agent + RAG** —— Coach 子图、Milvus/lite 双路检索、知识库入库与种子、建议卡 HITL、SSE 话术流。
+> 当前阶段：**M6 标签能力** —— 受保护的 `save_tags`、Ops 标签提案、标签确认/修正和客户标签筛选。
 
 ## 架构总览
 
@@ -99,6 +99,12 @@ AI 侧环境变量（可选）：`SALE_LLM_API_KEY` / `SALE_LLM_BASE_URL` / `SAL
 - [x] 建议卡：采纳（可编辑）、重新生成 ≤2、拒绝必填原因，行为完整落入 `suggestion_action`。
 - [x] SSE：intent / tool_call / rag_citation / token / proposal / done；客户详情页可直接带客户上下文进入话术助手。
 
-## 下一步（M6）
+## M6 验收清单
 
-按 MVP 文档推进标签能力；M8 再补 Trace 回放面板，M10 提供包含 Milvus 的 full compose。
+- [x] `tag_dict` / `customer_tag` 由 Flyway V3 建表并灌入基础标签；`save_tags` 经过 approval token 与幂等闸门。
+- [x] Ops 子图根据画像与近期跟进生成带依据、置信度的标签提案；确认画像后自动触发复核。
+- [x] 客户详情展示标签建议卡，支持确认、修正或放弃；客户列表按已生效标签筛选。
+
+## 下一步（M7）
+
+按 MVP 文档推进 admin MVP；M8 再补 Trace 回放面板，M10 提供包含 Milvus 的 full compose。

@@ -100,6 +100,18 @@ class ProposalStore:
             row = self._get_locked(proposal_id)
         return self._row_to_dict(row) if row else None
 
+    def replace_fields(self, proposal_id: str, fields: list[dict]) -> dict | None:
+        """员工修正建议内容后再确认；仅 pending 状态允许修改。"""
+        with self._lock:
+            cursor = self._conn.execute(
+                "UPDATE proposal SET fields = ? WHERE id = ? AND status = 'pending'",
+                (json.dumps(fields, ensure_ascii=False), proposal_id),
+            )
+            self._conn.commit()
+            if cursor.rowcount == 0:
+                return None
+            return self._row_to_dict(self._get_locked(proposal_id))
+
     def expire_pending(self) -> int:
         with self._lock:
             return self._expire_locked()
@@ -153,8 +165,9 @@ def _now_plus_ttl() -> str:
 
 
 def _merge_fields(existing: list[dict], incoming: list[dict]) -> list[dict]:
-    """同字段提案合并：incoming 按 fieldKey 覆盖既有，其余保留。"""
-    by_key = {item["fieldKey"]: item for item in existing}
+    """同一写工具提案合并：画像按 fieldKey、标签按 tagKey 覆盖。"""
+    key_name = "fieldKey" if all("fieldKey" in item for item in existing + incoming) else "tagKey"
+    by_key = {item[key_name]: item for item in existing}
     for item in incoming:
-        by_key[item["fieldKey"]] = item
-    return sorted(by_key.values(), key=lambda item: item["fieldKey"])
+        by_key[item[key_name]] = item
+    return sorted(by_key.values(), key=lambda item: item[key_name])

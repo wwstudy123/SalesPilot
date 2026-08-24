@@ -17,13 +17,29 @@ def confirm_proposal(proposals: ProposalStore, mcp: McpClient, proposal_id: str,
 
     idempotency_key = f"proposal:{proposal_id}"
     approval = mcp.issue_approval(proposal["tool"], proposal["customer_id"], {"proposal_id": proposal_id}, idempotency_key, jwt)
-    fields = [{"fieldKey": item["fieldKey"], "fieldValue": item["fieldValue"], "evidence": item["evidence"]} for item in proposal["fields"]]
     try:
-        updated = mcp.update_profile_fields(proposal["customer_id"], fields, approval["token"], idempotency_key, jwt)
+        if proposal["tool"] == "save_tags":
+            tags = [
+                {
+                    "tagKey": item["tagKey"],
+                    "evidence": item["evidence"],
+                    "confidence": item.get("confidence", 1.0),
+                }
+                for item in proposal["fields"]
+            ]
+            updated = mcp.save_tags(proposal["customer_id"], tags, approval["token"], idempotency_key, jwt)
+            result_key = "tags"
+        else:
+            fields = [
+                {"fieldKey": item["fieldKey"], "fieldValue": item["fieldValue"], "evidence": item["evidence"]}
+                for item in proposal["fields"]
+            ]
+            updated = mcp.update_profile_fields(proposal["customer_id"], fields, approval["token"], idempotency_key, jwt)
+            result_key = "profile_fields"
     except McpError as exc:
         raise HTTPException(status_code=exc.http_status, detail=f"{exc.code}: {exc.message}") from exc
     resolved = proposals.resolve(proposal_id, "confirmed")
-    return {"proposal": resolved, "profile_fields": updated}
+    return {"proposal": resolved, result_key: updated}
 
 
 def reject_proposal(proposals: ProposalStore, proposal_id: str) -> dict:

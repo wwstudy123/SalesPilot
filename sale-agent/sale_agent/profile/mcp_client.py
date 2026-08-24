@@ -37,6 +37,10 @@ class McpClient:
         data = self._call_tool("get_customer_profile", {"customer_id": customer_id}, jwt, no_cache=no_cache)
         return data.get("fields", [])
 
+    def get_tags(self, customer_id: int, jwt: str) -> list[dict]:
+        response = self._get(f"{self._business}/api/v1/customers/{customer_id}/tags", jwt)
+        return response["data"]
+
     # ---------- write：凭证签发 + 携凭证执行 ----------
 
     def issue_approval(self, tool: str, customer_id: int, payload: dict, idempotency_key: str, jwt: str) -> dict:
@@ -58,6 +62,16 @@ class McpClient:
             idempotency_key=idempotency_key,
         )
         return data.get("fields", [])
+
+    def save_tags(self, customer_id: int, tags: list[dict], approval_token: str, idempotency_key: str, jwt: str) -> list[dict]:
+        data = self._call_tool(
+            "save_tags",
+            {"customer_id": customer_id, "tags": tags},
+            jwt,
+            approval_token=approval_token,
+            idempotency_key=idempotency_key,
+        )
+        return data.get("tags", [])
 
     # ---------- 内部 ----------
 
@@ -83,6 +97,14 @@ class McpClient:
     def _post(url: str, body: dict, jwt: str) -> dict:
         try:
             response = httpx.post(url, headers={"Authorization": f"Bearer {jwt}"}, json=body, timeout=5.0)
+        except httpx.HTTPError as exc:
+            raise McpError("E_BUSINESS_UNAVAILABLE", 502, f"业务后端不可用: {exc}") from exc
+        return McpClient._unwrap_static(response)
+
+    @staticmethod
+    def _get(url: str, jwt: str) -> dict:
+        try:
+            response = httpx.get(url, headers={"Authorization": f"Bearer {jwt}"}, timeout=5.0)
         except httpx.HTTPError as exc:
             raise McpError("E_BUSINESS_UNAVAILABLE", 502, f"业务后端不可用: {exc}") from exc
         return McpClient._unwrap_static(response)

@@ -54,6 +54,17 @@ export type Purchase = {
   createdAt: string | null
 }
 
+export type CustomerTag = {
+  id: number
+  customerId: number
+  tagKey: string
+  tagName: string
+  tagType: string
+  evidence: string
+  confidence: number
+  updatedAt: string | null
+}
+
 // ---------- M4：画像与提案（HITL） ----------
 
 export type ProfileField = {
@@ -79,13 +90,19 @@ export type Proposal = {
   customer_id: number
   employee_id: number
   tool: string
-  fields: ProposalField[]
+  fields: Array<ProposalField | TagProposalField>
   status: string
   run_id: string | null
   source: string | null
   created_at: string
   expires_at: string
   resolved_at: string | null
+}
+
+export type TagProposalField = {
+  tagKey: string
+  evidence: string
+  confidence: number
 }
 
 export type ProfileRefreshResult = {

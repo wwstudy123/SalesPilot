@@ -27,6 +27,7 @@ from sale_agent.internal_api.settings import load_settings
 from sale_agent.internal_api.worker import WorkerManager
 from sale_agent.kb.store import KnowledgeStore
 from sale_agent.kb.vector_store import build_vector_backend
+from sale_agent.ops.subgraph import OpsSubgraph
 from sale_agent.profile.extractor import ProfileExtractor
 from sale_agent.profile.mcp_client import McpClient
 from sale_agent.profile.subgraph import ProfileSubgraph
@@ -106,8 +107,11 @@ def create_app() -> FastAPI:
     app.state.rag_pipeline = rag_pipeline
     app.state.suggestion_store = suggestion_store
     app.state.coach_subgraph = coach_subgraph
+    app.state.ops_subgraph = OpsSubgraph(mcp_client, proposal_store, trace_store)
     app.state.vector_backend = vector_backend
-    app.state.chat_graph = ChatGraph(gateway, context_store, trace_store, intent_router, coach=coach_subgraph)
+    app.state.chat_graph = ChatGraph(
+        gateway, context_store, trace_store, intent_router, coach=coach_subgraph, ops=app.state.ops_subgraph
+    )
     app.include_router(router)
     app.include_router(project_router)
     app.include_router(ai_router)
