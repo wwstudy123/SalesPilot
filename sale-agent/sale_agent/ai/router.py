@@ -302,7 +302,12 @@ async def reject_suggestion(request: Request, suggestion_id: int, body: Suggesti
 
 
 @router.post("/suggestions/{suggestion_id}/regenerate")
-async def regenerate_suggestion(request: Request, suggestion_id: int, body: SuggestionRegenerateRequest) -> dict:
+async def regenerate_suggestion(
+    request: Request,
+    suggestion_id: int,
+    body: SuggestionRegenerateRequest,
+    authorization: str | None = Header(default=None),
+) -> dict:
     """重新生成（≤2 次）：附要求 → Coach 换素材重生成。"""
     from sale_agent.suggestion.store import RegenerateLimitError
 
@@ -311,13 +316,16 @@ async def regenerate_suggestion(request: Request, suggestion_id: int, body: Sugg
     current = store.get(suggestion_id)
     if current is None:
         raise HTTPException(status_code=404, detail=f"suggestion not found: {suggestion_id}")
+    jwt = (authorization or "").removeprefix("Bearer ").strip()
+    if current["customer_id"] and not jwt:
+        raise HTTPException(status_code=401, detail="重新生成客户话术需要员工 JWT")
     try:
         result = coach.generate(
             intent="talk_script" if current["skill"] == "intent-followup" else "objection_help",
-            message=body.requirement,
+            message=current["request_message"] or body.requirement,
             customer_id=current["customer_id"] or None,
             employee_id=current["employee_id"],
-            jwt=None,  # 重新生成沿用已有事实摘要，不再拉取（免重复授权）
+            jwt=jwt or None,
             session_id=current["session_id"],
             run_id=current["run_id"],
             exclude_chunk_ids=[citation["chunk_id"] for citation in current["citations"]],

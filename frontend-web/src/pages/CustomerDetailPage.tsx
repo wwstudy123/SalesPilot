@@ -44,6 +44,9 @@ export function CustomerDetailPage() {
             {customer.source ? ` · 来源：${customer.source}` : ''}
           </p>
           {customer.remark ? <p>备注：{customer.remark}</p> : null}
+          <Link className='secondary-button' to={`/chat?customerId=${customer.id}`}>
+            用 AI 生成回访话术
+          </Link>
         </section>
       ) : null}
 

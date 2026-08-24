@@ -13,8 +13,12 @@ import threading
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from sale_agent.intent.embedding import _bigrams
+
+if TYPE_CHECKING:
+    from sale_agent.kb.vector_store import VectorBackend
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS knowledge_doc (
@@ -45,12 +49,13 @@ def _now() -> str:
 
 
 class KnowledgeStore:
-    def __init__(self, db_path: str | None = None) -> None:
+    def __init__(self, db_path: str | None = None, vector_backend: VectorBackend | None = None) -> None:
         path = Path(db_path or os.environ.get("SALE_KNOWLEDGE_DB", "") or Path("output") / "ai" / "knowledge.db")
         path.parent.mkdir(parents=True, exist_ok=True)
         self._lock = threading.Lock()
         self._conn = sqlite3.connect(str(path), check_same_thread=False)
         self._conn.row_factory = sqlite3.Row
+        self._vector_backend = vector_backend
         with self._lock:
             self._conn.executescript(_SCHEMA)
             self._conn.commit()
@@ -80,6 +85,17 @@ class KnowledgeStore:
     def publish(self, domain: str, source: str) -> dict:
         """原子切换：staging 置 ready，同 source 旧 ready 归档（单事务）。"""
         with self._lock:
+            old_ready_ids = [
+                row["id"]
+                for row in self._conn.execute(
+                    "SELECT id FROM knowledge_doc WHERE domain = ? AND source = ? AND status = 'ready'",
+                    (domain, source),
+                ).fetchall()
+            ]
+            staging_rows = self._conn.execute(
+                "SELECT id FROM knowledge_doc WHERE domain = ? AND source = ? AND status = 'staging'",
+                (domain, source),
+            ).fetchall()
             self._conn.execute(
                 "UPDATE knowledge_doc SET status = 'archived' WHERE domain = ? AND source = ? AND status = 'ready'",
                 (domain, source),
@@ -91,6 +107,8 @@ class KnowledgeStore:
             self._conn.commit()
         if cursor.rowcount == 0:
             raise ValueError(f"无 staging 文档可发布: {domain}/{source}")
+        # SQLite 元数据先提交，Milvus 仅作可重建索引；失败时继续走 lite 检索。
+        self._sync_vectors(domain, [row["id"] for row in staging_rows], old_ready_ids)
         return {"domain": domain, "source": source, "published": cursor.rowcount}
 
     # ---------- 检索读取（仅 ready） ----------
@@ -132,6 +150,29 @@ class KnowledgeStore:
         }
 
     # ---------- 内部 ----------
+
+    def _sync_vectors(self, domain: str, new_doc_ids: list[int], old_doc_ids: list[int]) -> None:
+        backend = self._vector_backend
+        if backend is None:
+            return
+        try:
+            if not backend.is_available():
+                return
+            for doc_id in new_doc_ids:
+                backend.upsert(domain, doc_id, self._chunks_for_doc(doc_id))
+            for doc_id in old_doc_ids:
+                backend.delete_doc(domain, doc_id)
+        except Exception:  # noqa: BLE001
+            # 向量库不可用不影响 MySQL/SQLite 主数据和 lite RAG 路径。
+            return
+
+    def _chunks_for_doc(self, doc_id: int) -> list[dict]:
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT id, content FROM knowledge_chunk WHERE doc_id = ? ORDER BY seq",
+                (doc_id,),
+            ).fetchall()
+        return [{"chunk_id": row["id"], "content": row["content"]} for row in rows]
 
     def _next_version_locked(self, domain: str, source: str) -> int:
         row = self._conn.execute(

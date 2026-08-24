@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS suggestion (
     run_id TEXT NOT NULL,
     kind TEXT NOT NULL DEFAULT 'talk_script',
     skill TEXT NOT NULL,
+    request_message TEXT NOT NULL DEFAULT '',
     content TEXT NOT NULL,
     citations TEXT NOT NULL DEFAULT '[]',
     warnings TEXT NOT NULL DEFAULT '[]',
@@ -63,6 +64,7 @@ class SuggestionStore:
         self._conn.row_factory = sqlite3.Row
         with self._lock:
             self._conn.executescript(_SCHEMA)
+            self._ensure_request_message_column()
             self._conn.commit()
 
     # ---------- 创建 / 查询 ----------
@@ -75,6 +77,7 @@ class SuggestionStore:
         session_id: str,
         run_id: str,
         skill: str,
+        request_message: str,
         content: str,
         citations: list[dict],
         warnings: list[str],
@@ -82,8 +85,8 @@ class SuggestionStore:
     ) -> dict:
         with self._lock:
             cursor = self._conn.execute(
-                "INSERT INTO suggestion (customer_id, employee_id, session_id, run_id, kind, skill,"
-                " content, citations, warnings, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "INSERT INTO suggestion (customer_id, employee_id, session_id, run_id, kind, skill, request_message,"
+                " content, citations, warnings, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     customer_id,
                     employee_id,
@@ -91,6 +94,7 @@ class SuggestionStore:
                     run_id,
                     kind,
                     skill,
+                    request_message,
                     content,
                     json.dumps(citations, ensure_ascii=False),
                     json.dumps(warnings, ensure_ascii=False),
@@ -164,6 +168,11 @@ class SuggestionStore:
         return self.get(suggestion_id)
 
     # ---------- 内部 ----------
+
+    def _ensure_request_message_column(self) -> None:
+        columns = {row["name"] for row in self._conn.execute("PRAGMA table_info(suggestion)").fetchall()}
+        if "request_message" not in columns:
+            self._conn.execute("ALTER TABLE suggestion ADD COLUMN request_message TEXT NOT NULL DEFAULT ''")
 
     def _resolve(self, suggestion_id: int, resolve, *, edited_content: str | None = None, reason: str | None = None) -> dict:
         with self._lock:

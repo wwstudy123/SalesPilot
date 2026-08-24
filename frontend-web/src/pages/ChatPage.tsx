@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useSearchParams } from 'react-router-dom'
 import { streamChat, type ChatEvent } from '../lib/api/aiChat'
 import { fetchCustomers } from '../lib/api/customers'
 import { SuggestionCard } from '../components/chat/SuggestionCard'
@@ -23,10 +24,11 @@ const QUICK_INTENTS: Array<{ intent: string; label: string; fallback: string }> 
 
 /** 员工侧聊天窗（sidebar 形态）：SSE 全量事件渲染 + 建议卡交互。 */
 export function ChatPage() {
+  const [searchParams] = useSearchParams()
   const customersQuery = useQuery({ queryKey: ['customers'], queryFn: fetchCustomers })
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
-  const [customerId, setCustomerId] = useState<string>('')
+  const [customerId, setCustomerId] = useState<string>(() => searchParams.get('customerId') ?? '')
   const [streaming, setStreaming] = useState(false)
   const sessionId = useRef(`chat-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`)
 

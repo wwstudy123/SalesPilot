@@ -95,17 +95,18 @@ def create_app() -> FastAPI:
     app.state.proposal_store = proposal_store
     app.state.mcp_client = mcp_client
     app.state.profile_subgraph = ProfileSubgraph(mcp_client, ProfileExtractor(gateway), proposal_store, trace_store)
+    # M5：Milvus 接入（架构 A8；默认 lite，env 切 milvus，不可用自动降级）
+    vector_backend = build_vector_backend(embed_fn=gateway.embed)
     # M5：知识库 + RAG + Coach 子图 + 建议卡
-    knowledge_store = KnowledgeStore()
-    rag_pipeline = RAGPipeline(knowledge_store, gateway)
+    knowledge_store = KnowledgeStore(vector_backend=vector_backend)
+    rag_pipeline = RAGPipeline(knowledge_store, gateway, vector_backend=vector_backend)
     suggestion_store = SuggestionStore()
     coach_subgraph = CoachSubgraph(mcp_client, rag_pipeline, suggestion_store, gateway, trace_store)
     app.state.knowledge_store = knowledge_store
     app.state.rag_pipeline = rag_pipeline
     app.state.suggestion_store = suggestion_store
     app.state.coach_subgraph = coach_subgraph
-    # M5：Milvus 接入（架构 A8；默认 lite，env 切 milvus，不可用自动降级）
-    app.state.vector_backend = build_vector_backend(embed_fn=gateway.embed)
+    app.state.vector_backend = vector_backend
     app.state.chat_graph = ChatGraph(gateway, context_store, trace_store, intent_router, coach=coach_subgraph)
     app.include_router(router)
     app.include_router(project_router)

@@ -28,8 +28,9 @@ compose-down: ## 停止 MySQL / Redis
 seed-gen: ## 重新生成种子 SQL（§3 规格，金标预埋）
 	python3 scripts/generate_seed.py
 
-seed: ## 灌入种子数据到 sale-mysql（需先 compose-up）
+seed: ## 灌入 CRM 与知识库种子（需先 compose-up）
 	docker exec -i sale-mysql mysql -usale -psale_pass --default-character-set=utf8mb4 sale < business-mock/src/main/resources/db/seed/seed.sql
+	python -m sale_agent.kb.seed
 
 # ===== 测试 =====
 

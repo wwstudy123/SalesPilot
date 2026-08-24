@@ -1,7 +1,7 @@
 # SalesPilot 零售销售智能体系统
 
 > 依据冻结文档：《SalesPilot-需求文档 v1.2》《SalesPilot-技术架构设计 v1.2》《SalesPilot-MVP方案与任务拆解 v1.2》
-> 当前阶段：**M4 画像 Agent** —— mcp-server 五工具网关（权限四闸门）+ Profile 子图（抽取/diff/提案）+ HITL 确认流（approval_token 一次性凭证）+ 事件触发链路。
+> 当前阶段：**M5 话术 Agent + RAG** —— Coach 子图、Milvus/lite 双路检索、知识库入库与种子、建议卡 HITL、SSE 话术流。
 
 ## 架构总览
 
@@ -18,7 +18,7 @@ business-mock ──事件通知──▶ sale-agent /api/ai/events/follow_up_cr
 
 | 目录 | 职责 | 现状（M4） |
 |---|---|---|
-| `sale-agent/` | Python 3.11 + FastAPI + LangGraph：AI 核心引擎（包名 `sale_agent`） | `ai/` 包：Gateway + Trace + Redis 上下文 + 主图 + SSE；`intent/` 包：13 意图三路融合路由；`profile/` 包：画像子图（抽取/diff/提案）；`hitl/` 包：proposal 存储与确认流 |
+| `sale-agent/` | Python 3.11 + FastAPI + LangGraph：AI 核心引擎（包名 `sale_agent`） | `ai/` 包：Gateway + Trace + Redis 上下文 + 主图 + SSE；`intent/` 包：13 意图三路融合路由；`profile/` 包：画像子图（抽取/diff/提案）；`rag/`、`kb/`、`coach/` 与 `suggestion/` 提供 M5 话术链路 |
 | `business-mock/` | Java 21 + Spring Boot 3.3：Mock CRM，业务事实唯一写入口（包名 `com.nova.sale`） | 四域 CRUD + JWT + 归属校验 + Flyway V1/V2（画像字段表 + 审批凭证表）+ 无凭证 write 403 + AI 事件通知器 |
 | `mcp-server/` | Python 统一工具层：权限闸门/熔断/幂等/缓存/审计 | 5 工具（4 只读 + update_profile_field）+ 权限四闸门 + 幂等重放 + SQLite 审计 |
 | `frontend-web/` | React 双入口：`admin.html`（sale_admin）/ `sidebar.html`（sale_sidebar） | 登录 + 客户列表/详情 + AI 画像面板（画像卡/确认面板/首访清单，10s 轮询提案） |
@@ -44,7 +44,7 @@ business-mock ──事件通知──▶ sale-agent /api/ai/events/follow_up_cr
 conda activate sale             # Python 环境（已装 -e . -e ./mcp-server）
 cp .env.example .env            # 按需修改
 make compose-up                 # MySQL 8 + Redis 7
-make seed                       # 灌入种子数据（员工3/客户20/跟进300/消费~80，需先 compose-up）
+make seed                       # 灌入 CRM + M5 知识库种子（员工3/客户20/跟进300/消费~80，需先 compose-up）
 make seed-gen                   # 重新生成种子 SQL（scripts/generate_seed.py，确定性）
 
 export JAVA_HOME=$(/usr/libexec/java_home -v 21)   # 默认 JDK 为 17 时需要
@@ -60,6 +60,8 @@ make lint                       # ruff
 种子账号：`zhangsan/pass123`、`lisi/pass123`（employee，各挂 10 个客户）、`admin/admin123`（manager，可见全部客户）。前端登录页 `/login` 已预填 zhangsan。
 
 AI 侧环境变量（可选）：`SALE_LLM_API_KEY` / `SALE_LLM_BASE_URL` / `SALE_LLM_CHAT_MODEL` / `SALE_LLM_EMBEDDING_MODEL`；未配 key 时 Gateway 自动进入 echo 模式（无外部依赖）。会话上下文存 Redis `chat:ctx:{session_id}`（TTL 30min），Redis 不可达自动降级内存。
+
+向量检索默认使用 lite（SQLite + bigram）。设置 `SALE_VECTOR_BACKEND=milvus`、`MILVUS_HOST`、`MILVUS_PORT` 后，知识库发布会同步向量，RAG dense 检索自动切至 Milvus；服务或 embedding 不可用时自动回落 lite。
 
 ## M2 验收清单
 
@@ -89,6 +91,14 @@ AI 侧环境变量（可选）：`SALE_LLM_API_KEY` / `SALE_LLM_BASE_URL` / `SAL
 - [x] 前端：客户详情页 AI 画像面板（画像卡字段/依据/版本；待确认提案新旧值并呈 + 确认写入/放弃；空态首访清单）
 - [x] pytest 62 passed（新增：HITL 15 + 网关四闸门 9）+ ruff 全绿 + mvn test + 前端构建通过
 
-## 下一步（M5）
+## M5 验收清单
 
-按 MVP 文档推进：事件失效正式化（outbox/消息驱动替代 X-No-Cache）、熔断/限流、Trace 回放面板等 Monitor 验收项。
+- [x] 知识库：`knowledge_doc/chunk` staging → ready 原子切换；上传、检索测试页、话术 ≥30 条与产品 ≥10 条种子；`make seed` 同步灌入。
+- [x] RAG：rewrite → dense/sparse top20 → RRF → LLM listwise rerank → 阈值注入；Milvus 可用时走真实 dense 检索，不可用自动降级 lite。
+- [x] Coach：两项硬编码技能；MCP 读取画像/跟进；产品相关请求补充 product_kb；事实自检与引用角标。
+- [x] 建议卡：采纳（可编辑）、重新生成 ≤2、拒绝必填原因，行为完整落入 `suggestion_action`。
+- [x] SSE：intent / tool_call / rag_citation / token / proposal / done；客户详情页可直接带客户上下文进入话术助手。
+
+## 下一步（M6）
+
+按 MVP 文档推进标签能力；M8 再补 Trace 回放面板，M10 提供包含 Milvus 的 full compose。

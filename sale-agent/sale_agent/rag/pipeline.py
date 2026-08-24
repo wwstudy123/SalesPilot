@@ -14,6 +14,7 @@ from dataclasses import dataclass, field
 from sale_agent.ai.gateway import LLMGateway
 from sale_agent.intent.embedding import _bigrams, cosine
 from sale_agent.kb.store import KnowledgeStore
+from sale_agent.kb.vector_store import VectorBackend
 
 # 阈值（架构 §2.4）：≥0.60 直用 / 0.35~0.60 限定语 / <0.25 弃
 SCORE_DIRECT = 0.60
@@ -46,9 +47,10 @@ class RagResult:
 
 
 class RAGPipeline:
-    def __init__(self, kb: KnowledgeStore, gateway: LLMGateway) -> None:
+    def __init__(self, kb: KnowledgeStore, gateway: LLMGateway, vector_backend: VectorBackend | None = None) -> None:
         self._kb = kb
         self._gateway = gateway
+        self._vector_backend = vector_backend
 
     # ---------- 主入口 ----------
 
@@ -85,9 +87,25 @@ class RAGPipeline:
         slots = [value for key in ("name", "lifecycle_stage", "value_tier", "recent_focus") if (value := customer_ctx.get(key))]
         return f"{query}（客户：{'；'.join(slots)}）" if slots else query
 
-    # ---------- dense：bigram 余弦 top20 ----------
+    # ---------- dense：Milvus 向量 top20，故障时 bigram 余弦降级 ----------
 
     def _dense(self, query: str, chunks: list[dict]) -> list[int]:
+        backend = self._vector_backend
+        if backend is not None:
+            try:
+                if backend.is_available():
+                    matches = backend.search(
+                        chunks[0]["domain"],
+                        self._gateway.embed([query])[0],
+                        top_k=RETRIEVE_TOP,
+                    )
+                    valid_ids = {chunk["chunk_id"] for chunk in chunks}
+                    ranked = [chunk_id for chunk_id, _ in matches if chunk_id in valid_ids]
+                    if ranked:
+                        return ranked
+            except Exception:  # noqa: BLE001
+                # 向量服务/embedding 短暂失败时保住 lite 演示链路。
+                pass
         query_vec = _bigrams(query)
         scored = [(chunk["chunk_id"], cosine(query_vec, chunk["vector"])) for chunk in chunks]
         scored.sort(key=lambda item: item[1], reverse=True)

@@ -28,6 +28,9 @@ class _EchoGateway:
     def chat(self, messages):
         raise AssertionError("echo 模式不应调用 LLM")
 
+    def embed(self, texts):
+        return [[0.1] for _ in texts]
+
 
 class _FakeMcp:
     """McpClient 替身：可控返回画像/跟进，或抛 McpError。"""
@@ -46,6 +49,36 @@ class _FakeMcp:
         if self._fail:
             raise McpError("E_FORBIDDEN", 403, "越权")
         return self._follow_ups
+
+
+class _FakeVectorBackend:
+    def __init__(self) -> None:
+        self.available = True
+        self.upserts: list[tuple[str, int, list[dict]]] = []
+        self.deleted: list[tuple[str, int]] = []
+        self.matches: list[tuple[int, float]] = []
+
+    def is_available(self) -> bool:
+        return self.available
+
+    def upsert(self, domain, doc_id, chunks):
+        self.upserts.append((domain, doc_id, chunks))
+
+    def search(self, domain, query_embedding, top_k=20):
+        return self.matches[:top_k]
+
+    def delete_doc(self, domain, doc_id):
+        self.deleted.append((domain, doc_id))
+
+
+class _RecordingMcp(_FakeMcp):
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.profile_jwts: list[str] = []
+
+    def get_profile(self, customer_id, jwt, no_cache=False):
+        self.profile_jwts.append(jwt)
+        return super().get_profile(customer_id, jwt, no_cache)
 
 
 @pytest.fixture()
@@ -106,6 +139,20 @@ def test_publish_without_staging_raises(tmp_path):
         store.publish("playbook", "nonexistent")
 
 
+def test_publish_syncs_ready_vectors_and_removes_archived_version(tmp_path):
+    backend = _FakeVectorBackend()
+    store = KnowledgeStore(str(tmp_path / "vectors.db"), vector_backend=backend)
+    first = store.ingest("playbook", "v1", "source", ["第一版话术"])
+    store.publish("playbook", "source")
+    assert backend.upserts[0][1] == first["doc_id"]
+    assert backend.upserts[0][2][0]["content"] == "第一版话术"
+
+    second = store.ingest("playbook", "v2", "source", ["第二版话术"])
+    store.publish("playbook", "source")
+    assert backend.upserts[-1][1] == second["doc_id"]
+    assert backend.deleted == [("playbook", first["doc_id"])]
+
+
 # ---------- RAG 管线 ----------
 
 
@@ -144,6 +191,19 @@ def test_rag_rewrite_injects_customer_slots(rag):
     )
     assert "王女士" in result.rewritten_query
     assert "high" in result.rewritten_query
+
+
+def test_rag_uses_vector_dense_results_when_available(tmp_path):
+    backend = _FakeVectorBackend()
+    store = KnowledgeStore(str(tmp_path / "vector-rag.db"), vector_backend=backend)
+    store.ingest("playbook", "甲", "a", ["客户嫌贵时先确认预算。"])
+    second = store.ingest("playbook", "乙", "b", ["客户嫌贵时提供安装服务。"])
+    store.publish("playbook", "a")
+    store.publish("playbook", "b")
+    second_chunk_id = next(chunk["chunk_id"] for chunk in store.ready_chunks() if chunk["doc_id"] == second["doc_id"])
+    backend.matches = [(second_chunk_id, 0.99)]
+    result = RAGPipeline(store, _EchoGateway(), vector_backend=backend).retrieve("客户嫌贵")
+    assert result.hits[0].title == "乙"
 
 
 # ---------- Coach 子图 ----------
@@ -215,6 +275,20 @@ def test_coach_no_customer_context_marks_warning(tmp_path, rag):
         run_id="r1",
     )
     assert any("未装载客户事实" in warning for warning in result["warnings"])
+
+
+def test_coach_adds_product_knowledge_for_product_question(tmp_path, rag):
+    coach, _ = _build_coach(tmp_path, rag)
+    result = coach.generate(
+        intent="talk_script",
+        message="介绍一下 X800 的滤芯成本和参数",
+        customer_id=None,
+        employee_id=1,
+        jwt=None,
+        session_id="s1",
+        run_id="r1",
+    )
+    assert any("X800" in citation["title"] for citation in result["citations"])
 
 
 def test_select_skill_mapping():
@@ -380,6 +454,28 @@ def test_suggestion_endpoints_flow(monkeypatch, tmp_path):
     actions = client.get(f"/api/ai/suggestions/{suggestion_id}/actions").json()["data"]
     kinds = [action["action"] for action in actions]
     assert kinds == ["create", "regenerate", "regenerate", "reject"]
+
+
+def test_regenerate_uses_original_request_and_fresh_jwt(monkeypatch, tmp_path):
+    client = _build_client(monkeypatch, tmp_path)
+    client.post("/api/ai/kb/seed")
+    mcp = _RecordingMcp(profile=[{"fieldKey": "value_tier", "fieldValue": "medium"}])
+    client.app.state.chat_graph.coach._mcp = mcp
+    jwt = _fake_jwt()
+    first = client.post(
+        "/api/ai/chat",
+        json={"session_id": "regen-context", "message": "给王女士写回访话术", "customer_id": 1, "intent": "talk_script"},
+        headers={"Authorization": f"Bearer {jwt}"},
+    )
+    suggestion_id = next(event for event in _parse_sse(first.text) if event["type"] == "proposal")["suggestion_id"]
+    updated = client.post(
+        f"/api/ai/suggestions/{suggestion_id}/regenerate",
+        json={"requirement": "更口语化一些"},
+        headers={"Authorization": f"Bearer {jwt}"},
+    )
+    assert updated.status_code == 200
+    assert mcp.profile_jwts == [jwt, jwt]
+    assert client.app.state.suggestion_store.get(suggestion_id)["request_message"] == "给王女士写回访话术"
 
 
 # ---------- M5 续：listwise rerank / 上传端点 / Milvus 降级 / 种子基线 ----------

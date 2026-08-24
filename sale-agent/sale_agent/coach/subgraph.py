@@ -28,6 +28,7 @@ TIER_PITCH = {
 # 敏感点含催促类关键词时，促单类话术需剔除（冲突降级）
 _URGE_KEYWORDS = ("催", "逼单", "别催")
 _PUSH_KEYWORDS = ("留上", "名额", "过了这村", "今天定")
+_PRODUCT_KEYWORDS = ("产品", "机型", "型号", "参数", "滤芯", "通量", "废水", "安装", "保修", "售后", "价格", "X400", "X600", "X800", "X1200")
 
 
 class CoachSubgraph:
@@ -64,9 +65,16 @@ class CoachSubgraph:
         # 1) 事实装载（事实区，来自 MCP；失败降级通用建议不阻断）
         profile, follow_ups = self._load_facts(customer_id, jwt, tool_calls, warnings)
 
-        # 2) RAG 话术区（playbook_kb）
+        # 2) RAG 知识区（话术为主；产品诉求补充 product_kb）
         query = f"{message}。{requirement}" if requirement else message
         rag_result = self._rag.retrieve(query, domain="playbook", customer_ctx=profile)
+        if self._needs_product_knowledge(query):
+            product_result = self._rag.retrieve(query, domain="product", customer_ctx=profile)
+            # 产品事实最多占两个引用位，保留至少三条话术素材供 Coach 组织表达。
+            rag_result.hits = product_result.hits[:2] + rag_result.hits[:3]
+            rag_result.knowledge_zone, rag_result.citations = self._rag.reinject(rag_result.hits)
+            if product_result.mode == "listwise":
+                rag_result.mode = "listwise"
         if exclude_chunk_ids:
             rag_result.hits = [hit for hit in rag_result.hits if hit.chunk_id not in exclude_chunk_ids]
             rag_result.knowledge_zone, rag_result.citations = self._rag.reinject(rag_result.hits)
@@ -89,6 +97,7 @@ class CoachSubgraph:
                 session_id=session_id,
                 run_id=run_id,
                 skill=skill["id"],
+                request_message=message,
                 content=reply,
                 citations=rag_result.citations,
                 warnings=warnings,
@@ -104,6 +113,10 @@ class CoachSubgraph:
             "rag_mode": rag_result.mode,
             "echo": self._gateway.settings.echo_mode,
         }
+
+    @staticmethod
+    def _needs_product_knowledge(query: str) -> bool:
+        return any(keyword.lower() in query.lower() for keyword in _PRODUCT_KEYWORDS)
 
     # ---------- 事实装载 ----------
 
