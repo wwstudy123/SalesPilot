@@ -114,10 +114,10 @@
 
 .sidebar__footer {
   border-top: 1px solid var(--nav-border);
-  padding-top: 10px;
+  padding-top: 12px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 6px;
 }
 
 .sidebar__footer .sidebar__item {
@@ -126,6 +126,46 @@
 
 .sidebar__footer .sidebar__item:hover {
   color: #ffffff;
+}
+
+.sidebar__user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 10px 8px;
+}
+
+.sidebar__user-avatar {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.sidebar__user-info {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.sidebar__user-info strong {
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar__user-info span {
+  color: #5c6b82;
+  font-size: 11px;
 }
 
 /* ---------- 响应式：窄屏收起为图标栏 ---------- */

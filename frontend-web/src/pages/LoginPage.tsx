@@ -1,21 +1,29 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { login } from '../lib/api/customers'
+import { useAuth } from '../app/auth'
 import './pages.css'
 
 export function LoginPage() {
   const navigate = useNavigate()
+  const { isAuthenticated, signIn } = useAuth()
   const [username, setUsername] = useState('zhangsan')
   const [password, setPassword] = useState('pass123')
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
 
+  // 已登录直接进入工作台
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/', { replace: true })
+    }
+  }, [isAuthenticated, navigate])
+
   const handleSubmit = async () => {
     setPending(true)
     setError(null)
     try {
-      await login(username.trim(), password)
-      navigate('/customers')
+      await signIn(username.trim(), password)
+      navigate('/', { replace: true })
     } catch (err) {
       setError((err as Error).message)
     } finally {
@@ -26,7 +34,13 @@ export function LoginPage() {
   return (
     <div className='login-page'>
       <section className='panel login-page__card'>
-        <h2>员工登录</h2>
+        <div className='login-page__brand'>
+          <span className='login-page__logo'>S</span>
+          <span>
+            Sales<span className='login-page__brand-accent'>Pilot</span>
+          </span>
+        </div>
+        <h2>登录</h2>
         <p className='login-page__hint'>种子账号：zhangsan / lisi（pass123）、admin（admin123）</p>
         <input
           className='text-input'
@@ -43,7 +57,7 @@ export function LoginPage() {
         />
         {error ? <p className='login-page__error'>{error}</p> : null}
         <button type='button' className='primary-button' onClick={handleSubmit} disabled={pending}>
-          登录
+          {pending ? '登录中…' : '登录'}
         </button>
       </section>
     </div>

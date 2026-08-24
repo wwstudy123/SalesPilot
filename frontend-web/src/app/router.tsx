@@ -8,20 +8,40 @@ import { HomePage } from '../pages/HomePage'
 import { KbSearchPage } from '../pages/KbSearchPage'
 import { LoginPage } from '../pages/LoginPage'
 import { MonitorPage } from '../pages/MonitorPage'
+import { RequireAuth, RequireManager } from './guards'
 
 const router = createBrowserRouter([
+  // 登录页独立于工作台外壳
+  { path: '/login', element: <LoginPage /> },
   {
     path: '/',
-    element: <AppShell />,
+    element: (
+      <RequireAuth>
+        <AppShell />
+      </RequireAuth>
+    ),
     children: [
       { index: true, element: <HomePage /> },
-      { path: 'login', element: <LoginPage /> },
       { path: 'customers', element: <CustomersPage /> },
       { path: 'customers/:customerId', element: <CustomerDetailPage /> },
       { path: 'chat', element: <ChatPage /> },
       { path: 'kb', element: <KbSearchPage /> },
-      { path: 'admin', element: <AdminPage /> },
-      { path: 'monitor', element: <MonitorPage /> },
+      {
+        path: 'admin',
+        element: (
+          <RequireManager>
+            <AdminPage />
+          </RequireManager>
+        ),
+      },
+      {
+        path: 'monitor',
+        element: (
+          <RequireManager>
+            <MonitorPage />
+          </RequireManager>
+        ),
+      },
       { path: '*', element: <Navigate to='/' replace /> },
     ],
   },

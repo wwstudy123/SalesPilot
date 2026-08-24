@@ -1,5 +1,6 @@
 import { useLocation, useNavigate } from 'react-router-dom'
-import { BookOpen, LayoutDashboard, MessageSquare, ShieldCheck, Users, Activity, LogIn } from 'lucide-react'
+import { BookOpen, LayoutDashboard, LogOut, MessageSquare, ShieldCheck, Users, Activity } from 'lucide-react'
+import { useAuth } from '../../app/auth'
 import './layout.css'
 
 type NavItem = {
@@ -21,10 +22,11 @@ const adminNav: NavItem[] = [
   { to: '/monitor', label: 'Monitor', icon: Activity, isActive: (p) => p.startsWith('/monitor') },
 ]
 
-/** 左侧边栏（Copilot 工作台布局）：主导航 + 管理区分组 + 底部登录。 */
+/** 左侧边栏（Copilot 工作台布局）：管理分组仅店长可见，底部为当前用户与退出。 */
 export function Sidebar() {
   const navigate = useNavigate()
   const location = useLocation()
+  const { user, isManager, signOut } = useAuth()
 
   function renderGroup(items: NavItem[]) {
     return items.map((item) => {
@@ -55,16 +57,29 @@ export function Sidebar() {
 
       <nav className='sidebar__nav'>
         <div className='sidebar__group'>{renderGroup(primaryNav)}</div>
-        <div className='sidebar__group-label'>管理</div>
-        <div className='sidebar__group'>{renderGroup(adminNav)}</div>
+        {isManager ? (
+          <>
+            <div className='sidebar__group-label'>管理</div>
+            <div className='sidebar__group'>{renderGroup(adminNav)}</div>
+          </>
+        ) : null}
       </nav>
 
-      <div className='sidebar__footer'>
-        <button type='button' className='sidebar__item' onClick={() => navigate('/login')}>
-          <LogIn size={17} strokeWidth={1.8} />
-          <span>登录</span>
-        </button>
-      </div>
+      {user ? (
+        <div className='sidebar__footer'>
+          <div className='sidebar__user'>
+            <span className='sidebar__user-avatar'>{user.name.slice(0, 1)}</span>
+            <span className='sidebar__user-info'>
+              <strong>{user.name}</strong>
+              <span>{isManager ? '店长' : '员工'}</span>
+            </span>
+          </div>
+          <button type='button' className='sidebar__item' onClick={signOut}>
+            <LogOut size={17} strokeWidth={1.8} />
+            <span>退出登录</span>
+          </button>
+        </div>
+      ) : null}
     </aside>
   )
 }
