@@ -1336,13 +1336,137 @@
 }
 
 .admin-page h2 {
-  font-size: 22px;
-  font-weight: 600;
+  font-size: 24px;
+  font-weight: 700;
   color: var(--text-strong);
 }
 
 .admin-page .panel {
-  padding: 16px 20px;
+  padding: 18px 22px;
+}
+
+.admin-page .panel h3 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-strong);
+  margin-bottom: 12px;
+}
+
+.admin-page__create {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+  align-items: center;
+}
+
+.admin-page__create .primary-button {
+  white-space: nowrap;
+}
+
+.admin-page__error {
+  margin-top: 10px;
+  color: var(--danger);
+  font-size: 13px;
+}
+
+.admin-page__employees {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.admin-page__employees li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-md);
+  background: var(--gray-50);
+}
+
+.admin-page__employees li strong {
+  color: var(--text-strong);
+  font-size: 14px;
+}
+
+.admin-page__employees .muted {
+  flex: 1;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.badge--manager {
+  background: var(--brand-50);
+  color: var(--brand-600);
+  border: 1px solid var(--brand-100);
+}
+
+.badge--employee {
+  background: var(--gray-100);
+  color: var(--gray-600);
+  border: 1px solid var(--border-soft);
+}
+
+.ghost-button {
+  padding: 6px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: #ffffff;
+  color: var(--text-body);
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color 0.12s ease, color 0.12s ease;
+}
+
+.ghost-button:hover {
+  border-color: var(--brand-500);
+  color: var(--brand-600);
+}
+
+.admin-page .panel ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.admin-page .panel > ul li {
+  padding: 10px 12px;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-md);
+  background: var(--gray-50);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.admin-page .panel ul ul {
+  display: block;
+  margin-left: 20px;
+}
+
+.admin-page .panel ul ul li {
+  border: none;
+  background: transparent;
+  padding: 2px 0;
+}
+
+.admin-page .panel .select {
+  width: auto;
+  padding: 6px 10px;
+  font-size: 13px;
 }
 
 /* ================================================================

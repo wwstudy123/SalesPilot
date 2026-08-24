@@ -3,8 +3,11 @@ package com.nova.sale.infrastructure.repository;
 import com.nova.sale.domain.model.Employee;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
+import java.sql.PreparedStatement;
 import java.util.List;
 import java.util.Optional;
 
@@ -52,6 +55,33 @@ public class EmployeeRepository {
                 "SELECT " + COLUMNS + " FROM employee WHERE deleted_token = '0' ORDER BY id",
                 ROW_MAPPER
         );
+    }
+
+    public boolean existsByUsername(String username) {
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM employee WHERE username = ? AND deleted_token = '0'",
+                Integer.class,
+                username
+        );
+        return count != null && count > 0;
+    }
+
+    public Employee create(String username, String passwordHash, String name, String role, String phone) {
+        KeyHolder keyHolder = new GeneratedKeyHolder();
+        jdbcTemplate.update(connection -> {
+            PreparedStatement ps = connection.prepareStatement("""
+                    INSERT INTO employee (username, password_hash, name, role, phone, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP(3), CURRENT_TIMESTAMP(3))
+                    """, new String[]{"id"});
+            ps.setString(1, username);
+            ps.setString(2, passwordHash);
+            ps.setString(3, name);
+            ps.setString(4, role);
+            ps.setString(5, phone);
+            return ps;
+        }, keyHolder);
+        Long id = keyHolder.getKey().longValue();
+        return findById(id).orElseThrow();
     }
 
     public void updateRole(Long employeeId, String role) {

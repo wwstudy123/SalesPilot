@@ -7,10 +7,10 @@ function adminFetch<T>(path: string): Promise<T> {
   return apiFetch<T>(path, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
 }
 
-function adminWrite<T>(path: string, body: unknown): Promise<T> {
+function adminWrite<T>(path: string, body: unknown, method: 'PUT' | 'POST' = 'PUT'): Promise<T> {
   const token = getToken()
   return apiFetch<T>(path, {
-    method: 'PUT',
+    method,
     body: JSON.stringify(body),
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   })
@@ -18,6 +18,16 @@ function adminWrite<T>(path: string, body: unknown): Promise<T> {
 
 export function fetchEmployees() {
   return adminFetch<Employee[]>('/api/v1/employees')
+}
+
+export function createEmployee(input: {
+  username: string
+  name: string
+  password: string
+  role: 'employee' | 'manager'
+  phone?: string
+}) {
+  return adminWrite<Employee>('/api/v1/employees', input, 'POST')
 }
 
 export function fetchCustomers() {

@@ -4,11 +4,14 @@ import com.nova.sale.domain.NotFoundException;
 import com.nova.sale.infrastructure.repository.EmployeeRepository;
 import com.nova.sale.infrastructure.security.AuthContext;
 import com.nova.sale.interfaces.dto.ApiResponse;
+import com.nova.sale.interfaces.dto.EmployeeCreateRequest;
 import com.nova.sale.interfaces.dto.EmployeeResponse;
 import com.nova.sale.interfaces.dto.EmployeeRoleRequest;
 import jakarta.validation.Valid;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -20,15 +23,37 @@ import java.util.List;
 @RequestMapping("/api/v1/employees")
 public class EmployeeController {
     private final EmployeeRepository employeeRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public EmployeeController(EmployeeRepository employeeRepository) {
+    public EmployeeController(EmployeeRepository employeeRepository, PasswordEncoder passwordEncoder) {
         this.employeeRepository = employeeRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     /** 列表仅 manager 可见（SecurityConfig 中 hasRole MANAGER）。 */
     @GetMapping
     public ApiResponse<List<EmployeeResponse>> list() {
         return ApiResponse.ok(employeeRepository.findAll().stream().map(EmployeeResponse::from).toList());
+    }
+
+    /** 新增员工：仅店长可操作，用户名唯一，密码由后端 BCrypt 加密存储。 */
+    @PostMapping
+    public ApiResponse<EmployeeResponse> create(@Valid @RequestBody EmployeeCreateRequest request) {
+        if (!AuthContext.current().isManager()) {
+            throw new com.nova.sale.domain.ForbiddenException("仅管理员可创建员工");
+        }
+        if (employeeRepository.existsByUsername(request.username())) {
+            throw new IllegalArgumentException("用户名已存在: " + request.username());
+        }
+        String role = request.role() == null || request.role().isBlank() ? "employee" : request.role();
+        EmployeeResponse created = EmployeeResponse.from(employeeRepository.create(
+                request.username(),
+                passwordEncoder.encode(request.password()),
+                request.name(),
+                role,
+                request.phone()
+        ));
+        return ApiResponse.ok(created);
     }
 
     @GetMapping("/me")
