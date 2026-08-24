@@ -17,7 +17,7 @@ os.environ.setdefault("SALE_MCP_AUDIT_DB", "/tmp/m4_test_mcp_audit.db")
 import pytest
 from fastapi.testclient import TestClient
 from sale_server import app as mcp_app
-from sale_server.tools import ToolError
+from sale_server.tools import TOOL_SPECS, ToolError
 
 SECRET = "sale-dev-jwt-secret-please-change-me-0123456789"
 
@@ -71,11 +71,11 @@ def _auth(token: str) -> dict:
     return {"Authorization": f"Bearer {token}"}
 
 
-def test_health_lists_five_tools(client):
+def test_health_lists_tools(client):
     test_client, _ = client
     response = test_client.get("/health")
     assert response.status_code == 200
-    assert response.json()["tools"] == 5
+    assert response.json()["tools"] == len(TOOL_SPECS)  # 与注册表保持一致（含 save_tags）
 
 
 def test_missing_or_invalid_jwt_returns_401(client):
