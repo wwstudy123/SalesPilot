@@ -27,6 +27,11 @@ const navItems = [
     isActive: (pathname: string) => pathname.startsWith('/admin'),
   },
   {
+    to: '/monitor',
+    label: 'Monitor',
+    isActive: (pathname: string) => pathname.startsWith('/monitor'),
+  },
+  {
     to: '/login',
     label: '登录',
     isActive: (pathname: string) => pathname.startsWith('/login'),

@@ -176,6 +176,25 @@ async def get_run(request: Request, run_id: str) -> dict:
     return {"code": "OK", "message": "success", "data": {"run": run, "spans": trace.list_spans(run_id)}}
 
 
+@router.get("/runs")
+async def list_runs(
+    request: Request,
+    session_id: str | None = None,
+    user_id: str | None = None,
+    intent: str | None = None,
+    status: str | None = None,
+    limit: int = 100,
+    authorization: str | None = Header(default=None),
+) -> dict:
+    payload = _jwt_payload((authorization or "").removeprefix("Bearer ").strip())
+    if payload.get("role") != "manager":
+        raise HTTPException(status_code=403, detail="仅管理员可查看 Monitor")
+    runs = request.app.state.trace_store.list_runs(
+        session_id=session_id, user_id=user_id, intent=intent, status=status, limit=limit
+    )
+    return {"code": "OK", "message": "success", "data": runs}
+
+
 @router.get("/intents")
 async def list_intents(request: Request) -> dict:
     catalog = request.app.state.intent_catalog

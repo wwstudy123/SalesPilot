@@ -35,6 +35,19 @@ def test_trace_missing_run_is_none(tmp_path):
     store.close()
 
 
+def test_trace_list_runs_filters_by_monitor_fields(tmp_path):
+    store = TraceStore(str(tmp_path / "trace.db"))
+    first = store.start_run("session-a", user_id="1")
+    second = store.start_run("session-b", user_id="2")
+    store.finish_run(first, "completed", intent="talk_script", routing_reason="coach", confidence=0.9)
+    store.finish_run(second, "failed", intent="tag_review", routing_reason="ops", confidence=0.8)
+
+    result = store.list_runs(user_id="1", intent="talk_script", status="completed")
+    assert [run["run_id"] for run in result] == [first]
+    assert store.list_runs(session_id="session-b")[0]["run_id"] == second
+    store.close()
+
+
 def test_in_memory_context_trim():
     store = InMemoryContextStore(max_messages=4)
 

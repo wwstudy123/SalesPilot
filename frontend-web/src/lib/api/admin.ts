@@ -37,9 +37,39 @@ export type AdminSession = {
   employee_id: number
   customer_id: number
   latest_at: string
-  turns: Array<{ id: number; skill: string; status: string; citations: unknown[] }>
+  turns: Array<{ id: number; run_id: string; skill: string; status: string; citations: unknown[] }>
 }
 
 export function fetchAdminSessions() {
   return adminFetch<AdminSession[]>('/api/ai/admin/sessions')
+}
+
+export type MonitorRun = {
+  run_id: string
+  session_id: string
+  user_id: string
+  intent: string | null
+  routing_reason: string | null
+  confidence: number | null
+  status: string
+  started_at: string
+  finished_at: string | null
+}
+
+export type MonitorSpan = {
+  span_id: string
+  name: string
+  status: string
+  started_at: string
+  finished_at: string | null
+  detail: string | null
+}
+
+export function fetchMonitorRuns(filters: Partial<Pick<MonitorRun, 'session_id' | 'user_id' | 'intent' | 'status'>> = {}) {
+  const query = new URLSearchParams(filters as Record<string, string>)
+  return adminFetch<MonitorRun[]>(`/api/ai/runs?${query.toString()}`)
+}
+
+export function fetchMonitorRun(runId: string) {
+  return adminFetch<{ run: MonitorRun; spans: MonitorSpan[] }>(`/api/ai/runs/${runId}`)
 }

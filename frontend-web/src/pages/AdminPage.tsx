@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Link } from 'react-router-dom'
 import { fetchCustomers, fetchEmployees, transferCustomer, updateEmployeeRole } from '../lib/api/admin'
 import { fetchAdminSessions } from '../lib/api/admin'
 import './pages.css'
@@ -52,7 +53,11 @@ export function AdminPage() {
           {(sessions.data ?? []).map((session) => (
             <li key={session.session_id}>
               会话 {session.session_id} · 客户 #{session.customer_id} · {session.turns.length} 条建议
-              <ul>{session.turns.map((turn) => <li key={turn.id}>{turn.skill} · {turn.status} · 引用 {turn.citations.length} 条</li>)}</ul>
+              <ul>{session.turns.map((turn) => (
+                <li key={turn.id}>
+                  {turn.skill} · {turn.status} · 引用 {turn.citations.length} 条 · <Link to={`/monitor?run=${turn.run_id}`}>Monitor</Link>
+                </li>
+              ))}</ul>
             </li>
           ))}
         </ul>

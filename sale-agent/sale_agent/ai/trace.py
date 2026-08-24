@@ -95,6 +95,30 @@ class TraceStore:
             row = self._conn.execute("SELECT * FROM agent_run WHERE run_id = ?", (run_id,)).fetchone()
         return dict(row) if row else None
 
+    def list_runs(
+        self,
+        *,
+        session_id: str | None = None,
+        user_id: str | None = None,
+        intent: str | None = None,
+        status: str | None = None,
+        limit: int = 100,
+    ) -> list[dict]:
+        clauses: list[str] = []
+        args: list[object] = []
+        for column, value in (("session_id", session_id), ("user_id", user_id), ("intent", intent), ("status", status)):
+            if value:
+                clauses.append(f"{column} = ?")
+                args.append(value)
+        sql = "SELECT * FROM agent_run"
+        if clauses:
+            sql += " WHERE " + " AND ".join(clauses)
+        sql += " ORDER BY started_at DESC LIMIT ?"
+        args.append(min(max(limit, 1), 200))
+        with self._lock:
+            rows = self._conn.execute(sql, args).fetchall()
+        return [dict(row) for row in rows]
+
     # ---------- span ----------
 
     def start_span(self, run_id: str, name: str) -> str:
