@@ -123,6 +123,11 @@ AI 侧环境变量（可选）：`SALE_LLM_API_KEY` / `SALE_LLM_BASE_URL` / `SAL
 - [x] `profile_eval`、`tag_eval`、`talk_eval` 输出指标、case 明细及基线 diff。
 - [x] 运行：`python -m sale_agent.eval --dataset all --output output/eval/report.json`。
 
-## 下一步（M10）
+## M10 冷启动与演示
 
-提供全量 compose、健康检查、演示脚本与异常场景打磨。
+```powershell
+docker compose -f compose.full.yml up --build -d
+docker compose -f compose.full.yml --profile seed up --build business-seed seed
+```
+
+服务入口：`http://localhost:8088`。完整账号、故事线和故障预案见 [`docs/演示脚本.md`](docs/演示脚本.md)。
