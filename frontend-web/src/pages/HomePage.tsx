@@ -12,6 +12,20 @@ const STAGE_LABELS: Record<string, string> = {
   churn_risk: '流失风险',
 }
 
+const STAGE_AVATAR_CLASS: Record<string, string> = {
+  new: 'focus__avatar--new',
+  prospective: 'focus__avatar--prospective',
+  existing: 'focus__avatar--existing',
+  churn_risk: 'focus__avatar--risk',
+}
+
+const STAGE_ITEM_CLASS: Record<string, string> = {
+  new: 'focus__item--new',
+  prospective: 'focus__item--prospective',
+  existing: 'focus__item--existing',
+  churn_risk: 'focus__item--risk',
+}
+
 /** 工作台 Dashboard：客户概览 + 重点关注 + 快捷入口。 */
 export function HomePage() {
   const navigate = useNavigate()
@@ -79,10 +93,12 @@ export function HomePage() {
               <li key={customer.id}>
                 <button
                   type='button'
-                  className='focus__item'
+                  className={`focus__item ${STAGE_ITEM_CLASS[customer.lifecycleStage] ?? ''}`}
                   onClick={() => navigate(`/customers/${customer.id}`)}
                 >
-                  <span className='focus__avatar'>{customer.name.slice(0, 1)}</span>
+                  <span className={`focus__avatar ${STAGE_AVATAR_CLASS[customer.lifecycleStage] ?? ''}`}>
+                    {customer.name.slice(0, 1)}
+                  </span>
                   <span className='focus__info'>
                     <strong>{customer.name}</strong>
                     <span className='focus__meta'>

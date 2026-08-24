@@ -3,40 +3,57 @@
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
   line-height: 1.6;
   font-weight: 400;
-  background: #ffffff;
-  color: #171717;
+  background: #f5f7fa;
+  color: #1f2937;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
-  /* 黑白中性色阶（Notion/Vercel 风） */
-  --gray-50: #fafafa;
-  --gray-100: #f5f5f5;
-  --gray-200: #e5e5e5;
-  --gray-300: #d4d4d4;
-  --gray-400: #a3a3a3;
-  --gray-500: #737373;
-  --gray-600: #525252;
-  --gray-900: #171717;
+  /* 中性灰阶 */
+  --gray-50: #f9fafb;
+  --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  --gray-300: #d1d5db;
+  --gray-400: #9ca3af;
+  --gray-500: #6b7280;
+  --gray-600: #4b5563;
+  --gray-900: #111827;
+
+  /* 品牌色：商务蓝 */
+  --brand-600: #1d4ed8;
+  --brand-500: #2563eb;
+  --brand-400: #3b82f6;
+  --brand-100: #dbeafe;
+  --brand-50: #eff6ff;
+
+  /* 导航（深藏青） */
+  --nav-bg: #0f1b2d;
+  --nav-bg-deep: #0a1424;
+  --nav-text: #a8b3c4;
+  --nav-text-active: #ffffff;
+  --nav-item-hover: rgba(255, 255, 255, 0.06);
+  --nav-item-active: #2563eb;
+  --nav-border: rgba(255, 255, 255, 0.08);
 
   /* 语义色 */
-  --accent: #171717;            /* 强调 = 黑 */
-  --accent-contrast: #ffffff;   /* 黑底上的文字 */
-  --accent-subtle: #f5f5f5;     /* 弱强调底 */
+  --accent: #2563eb;
+  --accent-contrast: #ffffff;
+  --accent-subtle: #eff6ff;
+  --accent-hover: #1d4ed8;
 
-  --bg: #ffffff;
-  --bg-subtle: #fafafa;
+  --bg: #f5f7fa;
+  --bg-subtle: #eef1f6;
   --panel: #ffffff;
   --panel-strong: #ffffff;
-  --surface-soft: #fafafa;
-  --surface-warm: #f5f5f5;
-  --border-soft: #e5e5e5;
-  --border-strong: #d4d4d4;
+  --surface-soft: #f9fafb;
+  --surface-warm: #f3f4f6;
+  --border-soft: #e5e9f0;
+  --border-strong: #d1d7e0;
 
-  --text-strong: #171717;
-  --text-body: #404040;
-  --text-muted: #737373;
+  --text-strong: #111827;
+  --text-body: #374151;
+  --text-muted: #6b7280;
 
   --success: #16a34a;
   --success-bg: #f0fdf4;
@@ -47,16 +64,16 @@
   --info: #2563eb;
   --info-bg: #eff6ff;
 
-  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-floating: 0 8px 24px rgba(0, 0, 0, 0.12);
+  --shadow-soft: 0 1px 2px rgba(16, 24, 40, 0.05);
+  --shadow-card: 0 1px 3px rgba(16, 24, 40, 0.07), 0 1px 2px rgba(16, 24, 40, 0.04);
+  --shadow-floating: 0 12px 32px rgba(16, 24, 40, 0.14);
 
   --radius-xl: 12px;
   --radius-lg: 10px;
   --radius-md: 8px;
   --radius-sm: 6px;
 
-  --sidebar-width: 232px;
+  --sidebar-width: 240px;
   --topbar-height: 56px;
 
   --font-display: 'Inter', -apple-system, 'PingFang SC', sans-serif;

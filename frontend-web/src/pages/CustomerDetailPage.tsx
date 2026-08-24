@@ -6,6 +6,13 @@ import { TagPanel } from '../components/tags/TagPanel'
 import { formatDate } from '../lib/utils/format'
 import './pages.css'
 
+const STAGE_LABELS: Record<string, string> = {
+  new: '新客',
+  prospective: '意向',
+  existing: '老客',
+  churn_risk: '流失风险',
+}
+
 export function CustomerDetailPage() {
   const { customerId } = useParams()
   const id = Number(customerId)
@@ -37,24 +44,32 @@ export function CustomerDetailPage() {
       {customerQuery.isError ? <p>加载失败：{(customerQuery.error as Error).message}</p> : null}
 
       {customer ? (
-        <section className='panel'>
-          <h2>{customer.name}</h2>
-          <p className='customer-detail__meta'>
-            阶段：{customer.lifecycleStage} · 性别：{customer.gender}
-            {customer.phone ? ` · 电话：${customer.phone}` : ''}
-            {customer.source ? ` · 来源：${customer.source}` : ''}
-          </p>
-          {customer.remark ? <p>备注：{customer.remark}</p> : null}
-          <Link className='secondary-button' to={`/chat?customerId=${customer.id}`}>
-            用 AI 生成回访话术
-          </Link>
+        <section className='panel profile-hero'>
+          <div className='profile-hero__main'>
+            <span className='profile-hero__avatar'>{customer.name.slice(0, 1)}</span>
+            <div className='profile-hero__title'>
+              <h2>{customer.name}</h2>
+              <p className='profile-hero__meta'>
+                {STAGE_LABELS[customer.lifecycleStage] ?? customer.lifecycleStage}
+                {customer.gender ? ` · ${customer.gender === 'male' ? '男' : customer.gender === 'female' ? '女' : customer.gender}` : ''}
+                {customer.phone ? ` · ${customer.phone}` : ''}
+                {customer.source ? ` · 来源：${customer.source}` : ''}
+              </p>
+            </div>
+            <Link className='primary-button primary-button--small' to={`/chat?customerId=${customer.id}`}>
+              用 AI 生成回访话术
+            </Link>
+          </div>
+          {customer.remark ? <p className='profile-hero__remark'>备注：{customer.remark}</p> : null}
+
+          <div className='profile-hero__grid'>
+            <ProfilePanel customerId={id} />
+            <TagPanel customerId={id} />
+          </div>
         </section>
       ) : null}
 
       <div className='customer-detail__columns'>
-        <ProfilePanel customerId={id} />
-        <TagPanel customerId={id} />
-
         <section className='panel'>
           <h3>跟进时间线（{followUpsQuery.data?.length ?? 0}）</h3>
           {followUpsQuery.isLoading ? <p>加载中…</p> : null}

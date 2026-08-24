@@ -70,7 +70,7 @@ h1, h2, h3, h4, p {
 }
 
 .primary-button:hover {
-  background: #000;
+  background: var(--accent-hover);
 }
 
 .primary-button:disabled {
@@ -192,8 +192,8 @@ h1, h2, h3, h4, p {
 .input:focus,
 .textarea:focus,
 .select:focus {
-  border-color: var(--gray-900);
-  box-shadow: 0 0 0 3px rgba(23, 23, 23, 0.08);
+  border-color: var(--brand-500);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
 }
 
 .input::placeholder,
