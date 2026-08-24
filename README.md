@@ -1,7 +1,7 @@
 # SalesPilot 零售销售智能体系统
 
 > 依据冻结文档：《SalesPilot-需求文档 v1.2》《SalesPilot-技术架构设计 v1.2》《SalesPilot-MVP方案与任务拆解 v1.2》
-> 当前阶段：**M8 Monitor 简版** —— Run 筛选列表与 Span 时间线，支持查看 AI 决策链。
+> 当前阶段：**M9 评测 CLI** —— 隔离运行 profile/tag/talk 三类离线评测并输出基线差异报告。
 
 ## 架构总览
 
@@ -117,6 +117,12 @@ AI 侧环境变量（可选）：`SALE_LLM_API_KEY` / `SALE_LLM_BASE_URL` / `SAL
 - [x] Run 可展开 Span 时间线，显示名称、状态、耗时与输入输出摘要。
 - [x] 管理端会话建议可跳转关联 Run 的 Monitor 详情。
 
-## 下一步（M9）
+## M9 验收清单
 
-实现 profile/tag/talk 三类评测 CLI；M10 再提供包含 Milvus 的 full compose。
+- [x] `eval_mode` 只使用内存金标与纯推断，不连接业务写路径或会话记忆。
+- [x] `profile_eval`、`tag_eval`、`talk_eval` 输出指标、case 明细及基线 diff。
+- [x] 运行：`python -m sale_agent.eval --dataset all --output output/eval/report.json`。
+
+## 下一步（M10）
+
+提供全量 compose、健康检查、演示脚本与异常场景打磨。
