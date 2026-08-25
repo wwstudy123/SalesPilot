@@ -23,7 +23,7 @@ from sale_agent.internal_api.project_service import ProjectService
 from sale_agent.internal_api.registry import RunRegistry
 from sale_agent.internal_api.routes import install_error_handlers, router
 from sale_agent.internal_api.service import RunService
-from sale_agent.internal_api.settings import load_settings
+from sale_agent.internal_api.settings import load_env_file, load_settings
 from sale_agent.internal_api.worker import WorkerManager
 from sale_agent.kb.store import KnowledgeStore
 from sale_agent.kb.vector_store import build_vector_backend
@@ -55,6 +55,7 @@ def create_app() -> FastAPI:
         version="0.1.0",
         description="Internal API to control and observe the Python agent runtime.",
     )
+    load_env_file()
     settings = load_settings()
     app.add_middleware(
         CORSMiddleware,
@@ -116,6 +117,18 @@ def create_app() -> FastAPI:
     app.include_router(project_router)
     app.include_router(ai_router)
     install_error_handlers(app)
+
+    @app.get("/", include_in_schema=False)
+    def root() -> dict:
+        """根路径返回服务信息（避免浏览器访问 / 时 404）。"""
+        return {
+            "service": "sale-agent-internal-api",
+            "status": "ok",
+            "llm_mode": "live" if not gateway.settings.echo_mode else "echo",
+            "health": "/api/ai/health",
+            "docs": "/docs",
+        }
+
     return app
 
 

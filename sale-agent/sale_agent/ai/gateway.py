@@ -23,9 +23,9 @@ _PLACEHOLDER_KEYS = {"", "your_api_key", "sk-xxx", "changeme"}
 
 @dataclass
 class GatewaySettings:
-    base_url: str = "https://api.openai.com/v1"
+    base_url: str = "https://api.deepseek.com"
     api_key: str = ""
-    chat_model: str = "gpt-4o-mini"
+    chat_model: str = "deepseek-v4-flash"
     embedding_model: str = "text-embedding-3-small"
     timeout: float = 60.0
     max_retries: int = 2
@@ -53,7 +53,7 @@ def load_gateway_settings() -> GatewaySettings:
     return GatewaySettings(
         base_url=os.environ.get("SALE_LLM_BASE_URL", "https://api.openai.com/v1").strip() or "https://api.openai.com/v1",
         api_key=os.environ.get("SALE_LLM_API_KEY", "").strip(),
-        chat_model=os.environ.get("SALE_LLM_CHAT_MODEL", "gpt-4o-mini").strip() or "gpt-4o-mini",
+        chat_model=os.environ.get("SALE_LLM_API_MODEL", "deepseek-v4-flash").strip() or "deepseek-v4-flash",
         embedding_model=os.environ.get("SALE_LLM_EMBEDDING_MODEL", "text-embedding-3-small").strip() or "text-embedding-3-small",
         timeout=_float("SALE_LLM_TIMEOUT", 60.0),
         max_retries=_int("SALE_LLM_MAX_RETRIES", 2),

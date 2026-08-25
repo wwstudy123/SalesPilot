@@ -15,10 +15,12 @@ services:
       timeout: 3s
       retries: 30
     volumes: [mysql-data:/var/lib/mysql]
+    ports: ["3306:3306"]
 
   redis:
     image: redis:7-alpine
     command: ["redis-server", "--appendonly", "no"]
+    ports: ["6379:6379"]
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s

@@ -1,11 +1,26 @@
-.PHONY: help api api-mcp api-java api-web seed seed-gen test test-py test-java test-web lint lint-py compose-up compose-down
+.PHONY: help api api-mcp api-java api-web seed seed-gen test test-py test-java test-web lint lint-py compose-up compose-down dev-status
 
 help: ## 显示可用命令
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
 
 # ===== 本地启动 =====
 
-api: ## 启动 sale-agent Internal API（uvicorn，:8000）
+dev-status: ## 一键检查各服务端口状态（8000/8080/5174/3306/6379）
+	@printf "  %-8s %-22s %s\n" "端口" "服务" "状态"; \
+	for p in 8000 8080 5174 3306 6379; do \
+	  case $$p in \
+	    8000) s="sale-agent" ;; \
+	    8080) s="business-mock" ;; \
+	    5174) s="前端 Vite" ;; \
+	    3306) s="MySQL" ;; \
+	    6379) s="Redis" ;; \
+	  esac; \
+	  r=$$(lsof -nP -iTCP:$$p -sTCP:LISTEN 2>/dev/null | tail -1 | awk '{print $$1"("$$2")"}'); \
+	  [ -z "$$r" ] && r="未运行"; \
+	  printf "  %-8s %-22s %s\n" "$$p" "$$s" "$$r"; \
+	done
+
+api: ## 启动 sale-agent Internal API（uvicorn，:8000；create_app 自动加载 .env）
 	python -m sale_agent.entry.internal_api.run
 
 api-mcp: ## 启动 mcp-server（:9010）
