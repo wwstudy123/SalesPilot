@@ -1,6 +1,7 @@
 import { Link, useParams } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
-import { fetchCustomer, fetchFollowUps, fetchPurchases } from '../lib/api/customers'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { fetchCustomer, fetchFollowUps, fetchMe, fetchPurchases } from '../lib/api/customers'
+import { refreshProfile } from '../lib/api/aiProfile'
 import { ProfilePanel } from '../components/profile/ProfilePanel'
 import { TagPanel } from '../components/tags/TagPanel'
 import { formatDate } from '../lib/utils/format'
@@ -16,6 +17,7 @@ const STAGE_LABELS: Record<string, string> = {
 export function CustomerDetailPage() {
   const { customerId } = useParams()
   const id = Number(customerId)
+  const queryClient = useQueryClient()
 
   const customerQuery = useQuery({
     queryKey: ['customer', id],
@@ -31,6 +33,15 @@ export function CustomerDetailPage() {
     queryKey: ['purchases', id],
     queryFn: () => fetchPurchases(id),
     enabled: Number.isFinite(id),
+  })
+  const meQuery = useQuery({ queryKey: ['me'], queryFn: fetchMe })
+
+  const profileRefresh = useMutation({
+    mutationFn: () => refreshProfile(id, meQuery.data?.id ?? 0),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['profile-fields', id] })
+      queryClient.invalidateQueries({ queryKey: ['proposals', id] })
+    },
   })
 
   const customer = customerQuery.data
@@ -56,9 +67,19 @@ export function CustomerDetailPage() {
                 {customer.source ? ` · 来源：${customer.source}` : ''}
               </p>
             </div>
-            <Link className='primary-button primary-button--small' to={`/chat?customerId=${customer.id}`}>
-              用 AI 生成回访话术
-            </Link>
+            <div className='profile-hero__actions'>
+              <button
+                type='button'
+                className='primary-button primary-button--small'
+                disabled={profileRefresh.isPending || !meQuery.data}
+                onClick={() => profileRefresh.mutate()}
+              >
+                {profileRefresh.isPending ? '分析中…' : 'AI 生成画像'}
+              </button>
+              <Link className='secondary-button secondary-button--small' to={`/chat?customerId=${customer.id}`}>
+                AI 生成话术
+              </Link>
+            </div>
           </div>
           {customer.remark ? <p className='profile-hero__remark'>备注：{customer.remark}</p> : null}
 

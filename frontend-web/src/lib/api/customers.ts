@@ -47,6 +47,20 @@ export async function fetchCustomers() {
   return authedFetch<Customer[]>('/api/v1/customers')
 }
 
+export async function createCustomer(input: {
+  name: string
+  phone?: string
+  gender?: 'M' | 'F' | 'U'
+  lifecycleStage?: 'new' | 'prospective' | 'existing' | 'churn_risk'
+  source?: string
+  remark?: string
+}) {
+  return authedFetch<Customer>('/api/v1/customers', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+}
+
 export async function fetchCustomer(customerId: number) {
   return authedFetch<Customer>(`/api/v1/customers/${customerId}`)
 }
