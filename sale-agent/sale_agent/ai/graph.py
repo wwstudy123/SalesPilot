@@ -1,7 +1,8 @@
 """LangGraph 主图：load_context → route → respond → save_context。
 
-route 节点接入 M3 三路意图分类（Rule/Embedding/LLM 融合），产出
-RoutingDecision；每个节点进出均打 agent_span，支撑 Monitor 观察。
+route 节点接入 M3 三路意图分类（Rule/Embedding/LLM 融合）并结合会话上下文：
+历史注入指代消解改写 + 上轮意图先验动态重排候选，产出 RoutingDecision
+（主责 Agent / 协作 Agent / 改写查询）；每个节点进出均打 agent_span，支撑 Monitor 观察。
 """
 
 from __future__ import annotations
@@ -31,6 +32,10 @@ class ChatState(TypedDict, total=False):
     routing_reason: str
     confidence: float
     decision_path: str
+    secondary_intent: str
+    primary_agent: str
+    collaborators: list
+    collab_result: dict
     reply: str
     model: str
     echo: bool
@@ -56,7 +61,8 @@ class ChatGraph:
         self.trace = trace
         self.intent_router = intent_router
         self.coach = coach  # M5：Coach 子图（talk_script/objection_help 分派）
-        self.ops = ops  # M6：Ops 子图（tag_review 分派）
+        self.ops = ops  # M6：Ops 子图（tag_review 分派；亦作协作 Agent）
+        self._last_intent: dict[str, str] = {}  # 会话级上轮意图（上下文先验）
         self._graph = self._build()
 
     def _build(self):
@@ -85,30 +91,47 @@ class ChatGraph:
             return {"history": [], "error": f"load_context failed: {exc}"}
 
     def _route(self, state: ChatState) -> dict:
-        # M3 三路意图分类：Rule 锁定短路，否则 Embedding ∥ LLM 融合
+        # M3 三路意图分类 + 会话上下文：历史注入指代消解，上轮意图作先验动态重排候选
         span = self.trace.start_span(state["run_id"], "route")
         if self.intent_router is None:
             decision = None
             result = {"intent": "echo", "routing_reason": "router unavailable", "confidence": 0.0, "decision_path": "UNKNOWN"}
         else:
-            decision = self.intent_router.route(state["message"], state.get("menu_intent"))
+            decision = self.intent_router.route(
+                state["message"],
+                state.get("menu_intent"),
+                history=state.get("history"),
+                sticky_intent=self._last_intent.get(state["session_id"]),
+            )
             result = {
                 "intent": decision.primary,
                 "routing_reason": decision.reason,
                 "confidence": decision.confidence,
                 "decision_path": decision.decision_path,
+                "secondary_intent": decision.secondary or "",
+                "primary_agent": decision.primary_agent,
+                "collaborators": decision.collaborators,
             }
+        if decision is not None:
+            self._last_intent[state["session_id"]] = decision.primary
         self.trace.finish_span(
             span,
             "ok",
-            {"intent": result["intent"], "path": result["decision_path"], "confidence": result["confidence"]},
+            {
+                "intent": result["intent"],
+                "path": result["decision_path"],
+                "confidence": result["confidence"],
+                "primary_agent": result.get("primary_agent", ""),
+                "collaborators": result.get("collaborators", []),
+            },
         )
         return result
 
     def _respond(self, state: ChatState) -> dict:
         # M5：coaching 类意图分派 Coach 子图（事实区 + 话术区 + 建议卡）
         if state.get("intent") in ("talk_script", "objection_help") and self.coach is not None:
-            return self._respond_coach(state)
+            result = self._respond_coach(state)
+            return self._collab_dispatch(state, result)
         if state.get("intent") == "tag_review" and self.ops is not None:
             return self._respond_ops(state)
         span = self.trace.start_span(state["run_id"], "respond")
@@ -181,6 +204,29 @@ class ChatGraph:
         except Exception as exc:  # noqa: BLE001
             self.trace.finish_span(span, "error", {"error": str(exc)})
             return {"reply": f"抱歉，标签分析暂时不可用：{exc}", "model": "none", "echo": False, "error": str(exc)}
+
+    def _collab_dispatch(self, state: ChatState, result: dict) -> dict:
+        """协作 Agent 分派：主责生成后，次选意图跨域指向 Ops（标签复核）时附带一轮建议。
+
+        触发条件：融合排序产出不同域次选（如话术+标签复合诉求）且客户上下文就绪；
+        独立 span 记录，协作失败不影响主责结果。
+        """
+        secondary = state.get("secondary_intent")
+        if secondary != "tag_review" or "ops" not in (state.get("collaborators") or []) or self.ops is None:
+            return result
+        if not state.get("customer_id") or not state.get("jwt"):
+            return result
+        span = self.trace.start_span(state["run_id"], "collab_ops_tag_review")
+        try:
+            employee_id = int(state.get("user_id") or 0)
+            collab = self.ops.review(state["customer_id"], employee_id, state["jwt"], source="collab")
+            self.trace.finish_span(span, "ok", {"outcome": collab["outcome"], "agent": "ops"})
+            if collab.get("outcome") == "proposal":
+                result["collab_result"] = collab
+                result["reply"] = f"{result.get('reply', '')}\n\n[协作 Agent · Ops] 已顺带生成标签建议，可在标签卡确认。"
+        except Exception as exc:  # noqa: BLE001
+            self.trace.finish_span(span, "error", {"error": str(exc)})
+        return result
 
     def _save_context(self, state: ChatState) -> dict:
         span = self.trace.start_span(state["run_id"], "save_context")
